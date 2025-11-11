@@ -26,7 +26,7 @@ def main():
     # start state: pole down
     s0 = np.array([0, 0, 0, 0])
     dt = 0.05
-    T = 2.5
+    T = 5.0
     # terminal state cost
     P = 1e3 * np.eye(n)
     # state cost
@@ -34,15 +34,15 @@ def main():
     # control cost matrix
     R = 0.001 * np.eye(m)
     # trust region
-    rho = 0.1
+    rho = 0.05
     # max control
     u_max = np.array([max_cart_force])
     # max state
-    s_max = np.array([track_length/2.0, 1000, max_cart_speed, 1000])[None, :]
+    s_max = np.array([track_length/2.0, 50, max_cart_speed, 50])[None, :]
     # convergence tolerance
-    eps = 0.5
+    eps = 0.005
     # SCP iterations
-    max_iters = 1000
+    max_iters = 10000
     animate = True
 
     t = np.arange(0.0, T + dt, dt)
@@ -64,6 +64,9 @@ def main():
     for i in range(n):
         ax[0,i].plot(t, s[:, i])
         ax[0,i].axhline(s_goal[i], linestyle="--", color="tab:orange")
+        if s_max[0,i] < 10:
+            ax[0,i].axhline(s_max[0,i], linestyle="--", color="tab:orange")
+            ax[0,i].axhline(-s_max[0,i], linestyle="--", color="tab:orange")
         ax[0,i].set_xlabel(r"$t$")
         ax[0,i].set_ylabel(labels_s[i])
     for i in range(m):

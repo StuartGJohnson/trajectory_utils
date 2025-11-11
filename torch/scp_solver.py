@@ -192,7 +192,7 @@ class SCPSolver:
             self.linearize_constraints(s, u)
             self.s_prev_param.value = s
             self.u_prev_param.value = u
-            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-3, max_iters=10000)
+            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-3, max_iters=20000)
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break

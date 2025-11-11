@@ -15,6 +15,7 @@ class CartpoleSolverVelocity(SCPSolver):
         self.pole_mass = pole_mass
         self.s_max = s_max
         self.tau = cart_tau
+        self.g = 9.81
         self.setup()
 
     def opt_problem(self) -> cvx.Problem:
@@ -38,17 +39,21 @@ class CartpoleSolverVelocity(SCPSolver):
         returns ds/dt with shape [..., 4]
         """
         # these may be useful later
-        # mp = self.pole_mass
-        # mc = self.cart_mass
+        # m_p = self.pole_mass
+        # m_c = self.cart_mass
         L  = self.pole_length
         tau = self.tau
-        g  = 9.81
+        g  = self.g
 
         x, th, dx, dth = s[..., 0], s[..., 1], s[..., 2], s[..., 3]
-        sin_th, cos_th = torch.sin(th), torch.cos(th)
+        sin_th = torch.sin(th)
+        cos_th = torch.cos(th)
 
         ddx  = (u[..., 0] - dx) / tau
-        ddth = -(g * sin_th + ddx * cos_th) / L
+        # mass at tip of pole
+        #ddth = -(g * sin_th + ddx * cos_th) / L
+        # mass along pole
+        ddth = -1.5 * (g * sin_th + ddx * cos_th) / L
 
         ds = torch.stack((dx, dth, ddx, ddth), dim=-1)
         return ds

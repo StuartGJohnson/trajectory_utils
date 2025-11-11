@@ -14,6 +14,7 @@ class CartpoleSolverForce(SCPSolver):
         self.pole_length = pole_length
         self.pole_mass = pole_mass
         self.s_max = s_max
+        self.g = 9.81
         self.setup()
 
     def opt_problem(self) -> cvx.Problem:
@@ -37,21 +38,28 @@ class CartpoleSolverForce(SCPSolver):
 
     def ode(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
-        s: [..., 4]  (x, θ, dx, dθ)
+        s: [..., 4]  (x, theta(th), dx, dtheta(dth))
         u: [..., 1]  (force)
         returns ds/dt with shape [..., 4]
         """
-        mp = self.pole_mass
-        mc = self.cart_mass
+        m_p = self.pole_mass
+        m_c = self.cart_mass
         L  = self.pole_length
-        g  = 9.81
+        g  = self.g
 
         x, th, dx, dth = s[..., 0], s[..., 1], s[..., 2], s[..., 3]
-        sin_th, cos_th = torch.sin(th), torch.cos(th)
-        h = mc + mp * (sin_th ** 2)
+        sin_th = torch.sin(th)
+        cos_th = torch.cos(th)
+        # mass at tip of pole
+        # d = m_c + m_p * (sin_th ** 2)
+        # mass along pole
+        d = 4 * m_c + m_p * (1 + 3 * sin_th ** 2)
 
-        ddx  = (mp * sin_th * (L * (dth ** 2) + g * cos_th) + u[..., 0]) / h
-        ddth = -((mc + mp) * g * sin_th + mp * L * (dth ** 2) * sin_th * cos_th + u[..., 0] * cos_th) / (h * L)
-
+        # mass at tip of pole
+        # ddx = (u[..., 0] + m_p * g * cos_th * sin_th + m_p * L * sin_th * (dth**2)) / d
+        # ddth = -(cos_th * u[..., 0] +  g * sin_th * (m_c + m_p) + m_p * L * sin_th * cos_th * (dth ** 2)) / (d * L)
+        # mass along pole
+        ddx = ( 4 * u[..., 0] + 3 * m_p * g * cos_th * sin_th + 2 * m_p * L * sin_th * (dth **2) ) / d
+        ddth = -(6 * cos_th * u[0, ...] + 6 * g * sin_th * (m_c + m_p) + 3 * m_p * L * sin_th * cos_th * (dth ** 2 )) / (d * L)
         ds = torch.stack((dx, dth, ddx, ddth), dim=-1)
         return ds
