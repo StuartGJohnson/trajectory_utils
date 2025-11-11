@@ -57,8 +57,8 @@ def main():
     s, u = solver.rollout(s, u)
 
     # Plot state and control trajectories
-    fig, ax = plt.subplots(2, n, dpi=150, figsize=(10, 6))
-    plt.subplots_adjust(wspace=0.45)
+    fig, ax = plt.subplots(2, n, dpi=150, figsize=(11, 6))
+    plt.subplots_adjust(wspace=0.5, hspace=0.5)
     labels_s = (r"$x(t)$", r"$\theta(t)$", r"$\dot{x}(t)$", r"$\dot{\theta}(t)$")
     labels_u = (r"$u(t)$",)
     for i in range(n):
