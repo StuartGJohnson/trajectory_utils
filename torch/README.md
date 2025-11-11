@@ -1,4 +1,4 @@
-# Trajectory Utils
+# Trajectory Utils (work in progress!)
 
 Code herein provides tools for computing or manipulating trajectories for robotics or control systems.
 
