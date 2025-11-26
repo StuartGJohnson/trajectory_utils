@@ -2,107 +2,56 @@
 Cart velocity (servo) controlled cartpole.
 """
 
-from cartpole_solver_velocity import CartpoleSolverVelocity
-
-from animate_cartpole import animate_cartpole
-import matplotlib.pyplot as plt
+from trajectory import TrajectoryScenario
+from cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
+from cartpole_expert import CartpoleVelocitySwingupExpert
+from plot_trajectory import plot_trajectory
 import numpy as np
+import pickle
 
 def main():
-    # Define constants
-    pole_length = 0.395
-    pole_mass = 0.087
-    cart_mass = 0.230
-    cart_length = 0.044
-    track_length = 0.44
-    max_cart_force = 1.77
-    max_cart_speed = 0.8
-    # tracking time constant of the cart speed controller
-    cart_tau = 0.25
-    # state dim
-    n = 4
-    #control dim
-    m = 1
+    env_params = CartpoleEnvironmentParams(pole_length=0.395,
+                            pole_mass=0.087,
+                            cart_mass=0.230,
+                            cart_length=0.044,
+                            track_length=0.44,
+                            max_cart_force=1.77,
+                            max_cart_speed=0.8,
+                            cart_tau=0.25,
+                            n=4,
+                            m=1,
+                            u_max=np.array([0.8]),
+                            s_max=np.array([0.44/2.0, 1000, 0.8, 1000])[None, :])
+
+    solver_params = SolverParams(dt=0.05,
+                              P=1e3 * np.eye(4),
+                              Q=np.diag([10, 2, 1, 0.25]), #Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
+                              R=0.001 * np.eye(1),
+                              rho=0.05,
+                              eps=0.005,
+                              max_iters=1000,
+                              u_max=np.array([0.8]),
+                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 1000])[None, :])
+
     # goal state: pole upright
-    s_goal = np.array([0, np.pi, 0, 0])
-    # start state: pole down
-    s0 = np.array([0, 0, 0, 0])
-    dt = 0.05
-    T = 4.5
-    # terminal state cost
-    P = 1e3 * np.eye(n)
-    # state cost
-    Q = np.diag([1e-2, 1.0, 1e-3, 1e-3])
-    # control cost matrix
-    R = 0.001 * np.eye(m)
-    # trust region size
-    rho = 0.05
-    # control effort bound
-    u_max = np.array([max_cart_speed])
-    s_max = np.array([track_length/2.0, 1000, max_cart_speed, 1000])[None, :]
-    eps = 0.005  # convergence tolerance
-    #max_iters = 100  # maximum number of SCP iterations
-    max_iters = 1000  # maximum number of SCP iterations
-    animate = True  # flag for animation
+    s_goal = np.array([0.0, np.pi, 0.0, 0.0])
+    # start state: pole down-ish
+    s0 = np.array([0.00, 0.0, 0.0, 0.0])
 
-    t = np.arange(0.0, T + dt, dt)
-    N = t.size - 1
+    scenario= TrajectoryScenario(s_goal=s_goal, s0=s0,t0=0.0, T=3.5)
 
-    solver = CartpoleSolverVelocity(N, dt, P, Q, R, u_max, rho, s_goal, s0, s_max, cart_mass, pole_length, pole_mass, cart_tau)
-    solver.initialize_trajectory()
-    s, u, J, conv = solver.solve(eps, max_iters)
+    expert = CartpoleVelocitySwingupExpert(ep=env_params,sp=solver_params)
 
-    # save pre-rollout solution
-    np.savez("cartpole_vctrl.npz",  s=s, u=u)
+    traj = expert.trajectory(scenario)
 
-    print("SCP convergence: " + str(conv))
+    plot_trajectory(env_params=env_params,
+                    traj=traj, filename_base="cartpole_velocity",
+                    animate=True)
 
-    # rollout solution given the controls returned by SCP
-    s, u = solver.rollout(s, u)
-
-    # Plot state and control trajectories
-    fig, ax = plt.subplots(2, n, dpi=150, figsize=(11, 6))
-    plt.subplots_adjust(wspace=0.5, hspace=0.5)
-    labels_s = (r"$x(t)$", r"$\theta(t)$", r"$\dot{x}(t)$", r"$\dot{\theta}(t)$")
-    labels_u = (r"$u(t)$",)
-    for i in range(n):
-        ax[0,i].plot(t, s[:, i])
-        ax[0,i].axhline(s_goal[i], linestyle="--", color="tab:orange")
-        if s_max[0,i] < 10:
-            ax[0,i].axhline(s_max[0,i], linestyle="--", color="tab:orange")
-            ax[0,i].axhline(-s_max[0,i], linestyle="--", color="tab:orange")
-        ax[0,i].set_xlabel(r"$t$")
-        ax[0,i].set_ylabel(labels_s[i])
-    for i in range(m):
-        ax[1,i].plot(t[:-1], u[:, i])
-        ax[1,i].axhline(u_max, linestyle="--", color="tab:orange")
-        ax[1,i].axhline(-u_max, linestyle="--", color="tab:orange")
-        ax[1,i].set_xlabel(r"$t$")
-        ax[1,i].set_ylabel(labels_u[i])
-    # add the trajectory plots
-    xvec = s[:, 0] + np.sin(s[:, 1])*pole_length
-    yvec = - np.cos(s[:, 1])*pole_length
-    ax[1, 1].plot(xvec, yvec)
-    ax[1, 1].set_xlabel("x")
-    ax[1, 1].set_ylabel("y")
-    fig.delaxes(ax[1, 2])
-    fig.delaxes(ax[1, 3])
-    plt.savefig("cartpole_vctrl_state.png", bbox_inches="tight")
-    plt.show()
-
-    # Plot cost history over SCP iterations
-    fig, ax = plt.subplots(1, 1, dpi=150, figsize=(8, 5))
-    ax.semilogy(J)
-    ax.set_xlabel(r"SCP iteration $i$")
-    ax.set_ylabel(r"SCP cost $J(\bar{x}^{(i)}, \bar{u}^{(i)})$")
-    plt.savefig("cartpole_vctrl_cost.png", bbox_inches="tight")
-    plt.show()
-
-    # Animate the solution
-    if animate:
-        fig, ani = animate_cartpole(t, s[:, 0], s[:, 1], pole_length, cart_length)
-        ani.save("cartpole_vctrl.gif", writer="ffmpeg")
-        #plt.show()
+    # pickle!
+    pickle_fest = [env_params, solver_params, traj]
+    with open("cartpole_velocity.pkl","wb") as f:
+        pickle.dump(pickle_fest, f)
 
 if __name__ == "__main__":
     main()

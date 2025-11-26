@@ -16,18 +16,35 @@ from torch.func import vmap, jacrev
 import numpy as np
 from typing import Tuple, Callable, Any, List
 import time
+from dataclasses import dataclass
 
 torch.set_default_dtype(torch.float64)
+
+@dataclass
+class SolverParams:
+    """the parameters of an SCP (solver) expert"""
+    dt: float
+    # terminal state cost
+    P: np.ndarray
+    # state cost along trajectory
+    Q: np.ndarray
+    # control cost matrix
+    R: np.ndarray
+    # trust region size
+    rho: float
+    # convergence tolerance
+    eps: float
+    # maximum number of SCP iterations
+    max_iters: int
+    # state max
+    s_max: np.ndarray
+    # control max
+    u_max: np.ndarray
 
 class SCPSolver:
     # basic SCP parameters (see the init method for docstrings)
     N : int
-    dt : float
-    P : np.ndarray
-    Q: np.ndarray
-    R: np.ndarray
-    u_max: np.ndarray
-    rho: float
+    params: SolverParams
     s_goal: np.ndarray
     s0: np.ndarray
     # initial trajectory
@@ -50,49 +67,38 @@ class SCPSolver:
     fd: Callable
 
     def __init__(self,
-                 N: int,
-                 dt: float,
-                 P: np.ndarray,
-                 Q: np.ndarray,
-                 R: np.ndarray,
-                 u_max: np.ndarray,
-                 rho:float,
-                 s_goal: np.ndarray,
-                 s0: np.ndarray):
+                 sp: SolverParams):
         """ Arguments
         ---------
+        sp : SolverParams
+            Time interval between trajectory points.
+        """
+        self.params = sp
+
+    def setup(self):
+        # these virtual-method calls do not belong in the constructor!
+        #self.prob = self.opt_problem()
+        self.fd = self.build_fd_ode(self.params.dt)
+
+    def reset(self, s0:np.ndarray, s_goal:np.ndarray, N:int):
+        """
         N : int
             The time horizon (N * dt) of the solver.
-        dt : float
-            Time interval between trajectory points.
-        P : numpy.ndarray
-            The terminal state cost matrix.
-        Q : numpy.ndarray
-            The state cost matrix.
-        R : numpy.ndarray
-            The control cost matrix.
-        u_max : numpy.ndarray
-            Control bounds [-u_max, u_max].
-        rho : float
-            Trust region radius.
         s_goal : numpy.ndarray
             The goal state.
         s0 : numpy.ndarray
             The initial state.
         """
-        self.N = N
-        self.dt = dt
-        self.P = P
-        self.Q = Q
-        self.R = R
-        self.u_max = u_max
-        self.rho = rho
-        self.s_goal = s_goal
+        # prepare for a new solve
         self.s0 = s0
+        self.s_goal = s_goal
+        self.N = N
+        self.s0 = s0
+        self.s_goal = s_goal
+        n = self.params.Q.shape[0]
+        m = self.params.R.shape[0]
         # declare all optimization parameters and variables
         # this speeds up CVXPY solves by a factor of 5 or more.
-        n = Q.shape[0]
-        m = R.shape[0]
         self.s_cvx = cvx.Variable((N + 1, n))
         self.u_cvx = cvx.Variable((N, m))
         self.A_param = [cvx.Parameter((n, n)) for _ in range(N)]
@@ -100,11 +106,7 @@ class SCPSolver:
         self.c_param = [cvx.Parameter(n) for _ in range(N)]
         self.s_prev_param = cvx.Parameter((N + 1, n))
         self.u_prev_param = cvx.Parameter((N, m))
-
-    def setup(self):
-        # these virtual-method calls do not belong in the constructor!
         self.prob = self.opt_problem()
-        self.fd = self.build_fd_ode(self.dt)
 
     def linearize(self, f: Callable, s_np: np.ndarray, u_np: np.ndarray) ->\
             Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -154,8 +156,8 @@ class SCPSolver:
 
     def initialize_trajectory(self):
         """Set and rollout the zero control trajectory."""
-        n = self.Q.shape[0]  # state dimension
-        m = self.R.shape[0]  # control dimension
+        n = self.params.Q.shape[0]  # state dimension
+        m = self.params.R.shape[0]  # control dimension
         # the zero control trajectory
         self.u_init = np.zeros((self.N, m))
         self.s_init = np.zeros((self.N + 1, n))
@@ -167,10 +169,10 @@ class SCPSolver:
         self.s_init = s_init
         self.u_init = u_init
 
-    def solve(self, eps: float, max_iters: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
+    def solve(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool, str]:
         """Solve over the time horizon via SCP.
 
-        Arguments
+        Arguments from class
         ---------
         eps : float
             Objective value for SCP convergence.
@@ -195,15 +197,15 @@ class SCPSolver:
 
         # SCP solve loop
         converged = False
-        J = np.zeros(max_iters + 1)
+        J = np.zeros(self.params.max_iters + 1)
         J[0] = np.inf
         start_time = time.time()
-        for i in range(max_iters):
+        for i in range(self.params.max_iters):
             self.linearize_dynamics(s, u)
             self.linearize_constraints(s, u)
             self.s_prev_param.value = s
             self.u_prev_param.value = u
-            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-3, max_iters=30000)
+            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-3, max_iters=40000)
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break
@@ -211,7 +213,7 @@ class SCPSolver:
             u = self.u_cvx.value
             J[i+1] = self.prob.objective.value
             dJ = np.abs(J[i + 1] - J[i])
-            if dJ < eps:
+            if dJ < self.params.eps:
                 converged = True
                 print("SCP converged after {} iterations.".format(i))
                 break
@@ -219,7 +221,7 @@ class SCPSolver:
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Solve time: {elapsed_time:.4f} seconds")
-        return s, u, J, converged
+        return s, u, J, converged, self.prob.status
 
     def discretize(self, f:Callable, dt: float) -> Callable:
         """

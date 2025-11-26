@@ -2,19 +2,21 @@
 Force (on cart) controlled cartpole. A specialization of SCPSolver.
 """
 
-from scp_solver import SCPSolver
+from scp_solver import SCPSolver, SolverParams
 
 import cvxpy as cvx
 import torch
+from cartpole import CartpoleEnvironmentParams
+from cartpole_energy import CartpoleEnergy
 
 class CartpoleSolverForce(SCPSolver):
-    def __init__(self, N, dt, P, Q, R, u_max, rho, s_goal, s0, s_max, cart_mass, pole_length, pole_mass):
-        super().__init__(N, dt, P, Q, R, u_max, rho, s_goal, s0)
-        self.cart_mass = cart_mass
-        self.pole_length = pole_length
-        self.pole_mass = pole_mass
-        self.s_max = s_max
+    ep: CartpoleEnvironmentParams
+    energy: CartpoleEnergy
+    def __init__(self, sp: SolverParams, ep: CartpoleEnvironmentParams):
+        super().__init__(sp)
+        self.ep = ep
         self.g = 9.81
+        self.energy = CartpoleEnergy(ep)
         self.setup()
 
     def opt_problem(self) -> cvx.Problem:
@@ -23,17 +25,19 @@ class CartpoleSolverForce(SCPSolver):
         constraints = [self.s_cvx[i + 1] == self.c_param[i] + self.A_param[i] @ self.s_cvx[i] +
                        self.B_param[i] @ self.u_cvx[i] for i in range(self.N)]
         constraints += [self.s_cvx[0] == self.s0]
-        constraints += [cvx.abs(self.u_cvx) <= self.u_max]
-        constraints += [cvx.abs(self.s_cvx) <= self.s_max]
-        constraints += [cvx.max(cvx.abs(self.s_cvx - self.s_prev_param)) <= self.rho]
-        constraints += [cvx.max(cvx.abs(self.u_cvx - self.u_prev_param)) <= self.rho]
+        constraints += [cvx.abs(self.u_cvx) <= self.params.u_max]
+        constraints += [cvx.abs(self.s_cvx) <= self.params.s_max]
+        constraints += [cvx.max(cvx.abs(self.s_cvx - self.s_prev_param)) <= self.params.rho]
+        constraints += [cvx.max(cvx.abs(self.u_cvx - self.u_prev_param)) <= self.params.rho]
         prob = cvx.Problem(cvx.Minimize(objective), constraints)
         return prob
 
     def opt_problem_objective(self, s: cvx.Expression, u: cvx.Expression) -> cvx.Expression:
-        objective = cvx.quad_form((self.s_cvx[self.N] - self.s_goal), self.P) + cvx.sum(
-            [cvx.quad_form(self.s_cvx[i] - self.s_goal, self.Q) + cvx.quad_form(self.u_cvx[i], self.R) for i in
-             range(self.N)])
+        objective = cvx.quad_form((self.s_cvx[self.N] - self.s_goal), self.params.P)
+        objective += cvx.sum([cvx.sum(cvx.huber(self.params.Q @ (self.s_cvx[i] - self.s_goal))) + cvx.quad_form(self.u_cvx[i], self.params.R) for i in range(self.N)])
+        # objective = cvx.quad_form((self.s_cvx[self.N] - self.s_goal), self.P) + cvx.sum(
+        #     [cvx.quad_form(self.s_cvx[i] - self.s_goal, self.Q) + cvx.quad_form(self.u_cvx[i], self.R) for i in
+        #      range(self.N)])
         return objective
 
     def ode(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
@@ -42,9 +46,9 @@ class CartpoleSolverForce(SCPSolver):
         u: [..., 1]  (force)
         returns ds/dt with shape [..., 4]
         """
-        m_p = self.pole_mass
-        m_c = self.cart_mass
-        L  = self.pole_length
+        m_p = self.ep.pole_mass
+        m_c = self.ep.cart_mass
+        L  = self.ep.pole_length
         g  = self.g
 
         x, th, dx, dth = s[..., 0], s[..., 1], s[..., 2], s[..., 3]

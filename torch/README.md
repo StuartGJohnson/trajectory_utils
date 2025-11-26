@@ -83,11 +83,11 @@ The system could in principle be driven by a force on the cart. A solution to sw
 
 Minimized cost, states and actions computed by this script are:
 
-<img src="cartpole_cost.png" alt="cartpole_cost.png" width="500"/> <img src="cartpole_state.png" alt="cartpole_state.png" width="550"/>
+<img src="cartpole_force_cost.png" alt="cartpole__force_cost.png" width="500"/> <img src="cartpole_force_state.png" alt="cartpole_force_state.png" width="550"/>
 
 An animation of the cartpole is:
 
-<img src="cartpole.gif" alt="cartpole.gif" width="500"/>
+<img src="cartpole_force.gif" alt="cartpole_force.gif" width="500"/>
 
 ## Cart velocity control
 
@@ -95,8 +95,8 @@ The system could also be driven by a velocity servo on the pole. A solution to s
 
 Minimized cost, states and actions computed by this script are:
 
-<img src="cartpole_vctrl_cost.png" alt="cartpole_vctrl_cost.png" width="500"/> <img src="cartpole_vctrl_state.png" alt="cartpole_vctrl_state.png" width="550"/>
+<img src="cartpole_velocity_cost.png" alt="cartpole_velocity_cost.png" width="500"/> <img src="cartpole_velocity_state.png" alt="cartpole_velocity_state.png" width="550"/>
 
 An animation of the cartpole is:
 
-<img src="cartpole_vctrl.gif" alt="cartpole.gif" width="500"/>
+<img src="cartpole_velocity.gif" alt="cartpole_velocity.gif" width="500"/>

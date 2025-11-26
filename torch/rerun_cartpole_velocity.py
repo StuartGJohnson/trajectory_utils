@@ -24,12 +24,12 @@ def main():
     #control dim
     m = 1
     # goal state: pole upright
-    s_goal = np.array([0, np.pi, 0, 0])
+    s_goal = np.array([0.05, np.pi, 0, 0])
     # start state: pole down + noise
     s0 = np.array([0.0, 0.0, 0.0, 0.0])
-    s0 = s0 + np.array([0.0, 0.2, 0.0, -0.2])
+    s0 = s0 + np.array([0.05, 0.0, 0.0, 0.0])
     dt = 0.05
-    T = 4.5
+    T = 3.0
     # terminal state cost
     P = 1e3 * np.eye(n)
     # state cost
@@ -68,7 +68,7 @@ def main():
     solver = CartpoleSolverVelocity(N, dt, P, Q, R, u_max, rho, s_goal, s0, s_max, cart_mass, pole_length, pole_mass, cart_tau)
     s,u = solver.rollout(s_init,u_init)
     solver.set_trajectory(s, u)
-    s, u, J, conv = solver.solve(eps, max_iters)
+    s, u, J, conv, status = solver.solve(eps, max_iters)
 
     print("SCP convergence: " + str(conv))
 
