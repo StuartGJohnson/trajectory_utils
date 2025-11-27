@@ -14,8 +14,9 @@ class CartpoleEnvironmentParams:
     max_cart_speed: float
     # tracking time constant of the cart speed controller
     cart_tau: float
-    u_max: np.ndarray
-    s_max: np.ndarray
+    # these may belong here, but they have ended up in the solver params
+    # u_max: np.ndarray
+    # s_max: np.ndarray
     # state and control dimension
     n: int
     m: int

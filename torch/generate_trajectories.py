@@ -12,7 +12,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 import math
 
-def worker(trial_range: range, worker_num: int):
+def worker(trial_range: range, worker_num: int, output_dir: str):
     env_params = CartpoleEnvironmentParams(pole_length=0.395,
                             pole_mass=0.087,
                             cart_mass=0.230,
@@ -22,9 +22,7 @@ def worker(trial_range: range, worker_num: int):
                             max_cart_speed=0.8,
                             cart_tau=0.25,
                             n=4,
-                            m=1,
-                            u_max=np.array([0.8]),
-                            s_max=np.array([0.44/2.0, 1000, 0.8, 1000])[None, :])
+                            m=1)
 
     solver_params = SolverParams(dt=0.05,
                               P=1e3 * np.eye(4),
@@ -34,16 +32,16 @@ def worker(trial_range: range, worker_num: int):
                               eps=0.005,
                               max_iters=1000,
                               u_max=np.array([0.8]),
-                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 1000])[None, :])
+                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 5*np.pi])[None, :])
 
-    tdir = "trajectories_test6"
+    tdir = output_dir
     os.makedirs(tdir, exist_ok=True)
 
     # goal state: pole upright
     s_goal = np.array([0.00, np.pi, 0, 0])
 
     # start loop - sample a distribution of s0's
-    uvec = np.array([0.05, 0.1, 0.00, 0.05])
+    uvec = np.array([0.0, np.pi/4, 0.0, 0.0])
 
     expert = CartpoleVelocitySwingupExpert(ep=env_params,sp=solver_params)
 
@@ -70,14 +68,14 @@ def chunk_range(n: int, n_chunks: int):
     for start in range(0, n, chunk_size):
         yield range(start, min(start + chunk_size, n))
 
-def run_parallel(N: int, n_workers: int) -> float:
+def run_parallel(N: int, n_workers: int, output_dir:str) -> float:
     ranges = list(chunk_range(N, n_workers))
     worker_nums = list(range(0, n_workers))
 
     print("\n")
     with ProcessPoolExecutor(max_workers=n_workers) as ex:
         futures = [
-            ex.submit(worker, r, wnum)
+            ex.submit(worker, r, wnum, output_dir)
             for r, wnum in zip(ranges, worker_nums)
         ]
         #results = [f.result() for f in futures]
@@ -86,4 +84,4 @@ def run_parallel(N: int, n_workers: int) -> float:
 
 
 if __name__ == "__main__":
-    run_parallel(N=96, n_workers=12)
+    run_parallel(N=4096, n_workers=12, output_dir="trajectories_big_1")

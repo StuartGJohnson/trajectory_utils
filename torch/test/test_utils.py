@@ -26,6 +26,20 @@ class MyTestCase(unittest.TestCase):
         for f in os.listdir("trajectories_test"):
             print(f)
 
+    def test_numpy_append(self):
+        all_arr = []
+        for i in range(0,3):
+            arr = np.random.rand(8, 4)
+            all_arr.append(arr)
+        np_all_arr = np.concatenate(all_arr,0)
+        print(np_all_arr)
+
+    def test_numpy_bcast(self):
+        norm = [1, 2, 3, 4]
+        t = np.array([[1,1,1,1],[2,2,2,2]])
+        print (t/norm)
+
+
 
 if __name__ == '__main__':
     unittest.main()

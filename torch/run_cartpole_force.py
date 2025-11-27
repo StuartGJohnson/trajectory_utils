@@ -24,9 +24,7 @@ def main():
                             max_cart_speed=0.8,
                             cart_tau=0.25,
                             n=4,
-                            m=1,
-                            u_max=np.array([1.77]),
-                            s_max=np.array([0.44/2.0, 1000, 0.8, 1000])[None, :])
+                            m=1)
 
     solver_params = SolverParams(dt=0.05,
                               P=1e3 * np.eye(4),
@@ -49,7 +47,7 @@ def main():
 
     traj = expert.trajectory(scenario)
 
-    plot_trajectory(env_params=env_params,
+    plot_trajectory(solver_params=solver_params, env_params=env_params,
                     traj=traj, filename_base="cartpole_force",
                     animate=True)
 

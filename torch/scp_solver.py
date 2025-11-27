@@ -210,7 +210,7 @@ class SCPSolver:
             self.linearize_constraints(s, u)
             self.s_prev_param.value = s
             self.u_prev_param.value = u
-            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-3, max_iters=40000)
+            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-4, max_iters=40000)
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break
@@ -255,6 +255,11 @@ class SCPSolver:
         s = S.detach().cpu().numpy()
         u = U.detach().cpu().numpy()
         return s, u
+
+    def step(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+        # single step of ode - for closed loop simulation with pytorch objects
+        # (e.g.) from NN predictions
+        return self.fd(s, u)
 
     def ode(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
