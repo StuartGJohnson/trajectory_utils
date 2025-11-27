@@ -127,6 +127,8 @@ def train(dname: str):
     plt.figure()
     plt.plot(epoch_vec, train_loss_vec, 'r')
     plt.plot(epoch_vec, val_loss_vec, 'g')
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss (MSE)")
     lcname = os.path.join(train_dir, "learning_curves.png")
     plt.savefig(lcname)
     plt.show()
