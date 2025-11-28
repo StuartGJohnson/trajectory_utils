@@ -159,5 +159,5 @@ def predict(trained_model_dir: str, trained_model_epoch: list, output_filename: 
 
 if __name__ == "__main__":
     predict(trained_model_dir="trajectories_big_1",
-            trained_model_epoch=[0,375],
-            output_filename="nn_test_2")
+            trained_model_epoch=[0,195],
+            output_filename="nn_test_3")

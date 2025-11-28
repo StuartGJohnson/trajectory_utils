@@ -123,10 +123,10 @@ This data was generated from random, stationary starts of the pendulum in the ra
 
 The states of a rollout of the trained policy:
 
-<img src="nn_test_1_state.png" alt="nn_test_1_state.png" width="500"/>
+<img src="nn_test_3_state.png" alt="nn_test_3_state.png" width="500"/>
 
 And, finally, the movie:
 
-<img src="nn_test_1.gif" alt="nn_test_1.gif" width="500"/>
+<img src="nn_test_3.gif" alt="nn_test_3.gif" width="500"/>
 
-Presumably, accumulated prediction error is making this early NN controller perform poorly. Stay tuned!
+For this test (more to come), the NN seems to have nailed the controller.

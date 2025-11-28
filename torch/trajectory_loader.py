@@ -36,11 +36,11 @@ def main(tdir: str):
             state_dim = norm_states.shape[1]
             n_states = norm_states.shape[0]
             ml_states = np.zeros((n_states-1, state_dim+1))
-            ml_states[:,0] = norm_states[1:,0]
-            ml_states[:,1] = np.cos(norm_states[1:,1])
-            ml_states[:,2] = np.sin(norm_states[1:,1])
-            ml_states[:, 3] = norm_states[1:, 2]
-            ml_states[:, 4] = norm_states[1:, 3]
+            ml_states[:, 0] = norm_states[:-1,0]
+            ml_states[:, 1] = np.cos(norm_states[:-1,1])
+            ml_states[:, 2] = np.sin(norm_states[:-1,1])
+            ml_states[:, 3] = norm_states[:-1, 2]
+            ml_states[:, 4] = norm_states[:-1, 3]
             all_states.append(ml_states)
             all_actions.append(norm_action)
     all_states = np.concatenate(all_states,0)
@@ -54,7 +54,6 @@ def main(tdir: str):
     plt.figure()
     plt.plot(all_actions,'+')
     plt.show()
-
 
 if __name__ == "__main__":
     main("trajectories_big_1")

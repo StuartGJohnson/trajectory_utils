@@ -97,7 +97,7 @@ def train(dname: str, restart_epoch: int = -1):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    num_epochs = 400
+    num_epochs = 200
 
     train_loss_vec = []
     val_loss_vec = []
@@ -153,4 +153,4 @@ def train(dname: str, restart_epoch: int = -1):
     plt.show()
 
 if __name__ == "__main__":
-    train(dname="trajectories_big_1", restart_epoch=0)
+    train(dname="trajectories_big_1", restart_epoch=-1)
