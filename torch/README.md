@@ -91,7 +91,7 @@ An animation of the cartpole is:
 
 ## Cart velocity control
 
-The system could also be driven by a velocity servo on the pole. A solution to swing-up is produced by executing ```run_cartpole_velocity.py```.
+The system could also be driven by a velocity servo on the cart. A solution to swing-up is produced by executing ```run_cartpole_velocity.py```.
 
 Minimized cost, states and actions computed by this script are:
 
