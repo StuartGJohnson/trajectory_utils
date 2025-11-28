@@ -1,10 +1,10 @@
 # Trajectory Utils (work in progress!)
 
-Code herein provides tools for computing or manipulating trajectories for robotics or control systems.
+Tools for computing or manipulating trajectories for robotics or control systems.
 
 ## Installation
 
-This code is intended to run on top of ROS2 Humble. An example would be running a trajectory solver from within a ROS2 node. Current procedure is to use a virtual env, which can safely extend your ROS2 humble installation.
+This code has been targeted to run on top of ROS2 Humble. An example would be running a trajectory solver from within a ROS2 node. Current procedure is to use a virtual env, which can safely extend your ROS2 humble installation.
 
 A makefile is included with useful targets, to be run from this directory:
 
@@ -113,13 +113,11 @@ train.py
 predict.py
 ```
 
-The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (a la, DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut!
-
 The learning curves (red is training, green is validation) from an 80/20 data split:
 
 <img src="nn_test_3_learning_curves.png" alt="nn_test_3_learning_curves.png" width="500"/>
 
-This data was generated from random, stationary starts of the pendulum in the range of +/- 45 degrees from pointing down. The velocity servo model of the cartpole was used, whereby 3598 3.5 second swingups were solved for successfully.
+This data was generated from random, stationary starts of the pendulum in the range of +/- 45 degrees from pointing down. The velocity servo model of the cartpole was used to solve for 3598 3.5 second swingups.
 
 The states of a rollout of the trained policy:
 
@@ -130,3 +128,4 @@ And, finally, the movie:
 <img src="nn_test_3.gif" alt="nn_test_3.gif" width="500"/>
 
 For this test (more to come), the NN seems to have nailed the controller.
+The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (a la, DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut!
