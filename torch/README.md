@@ -52,7 +52,7 @@ SCP solvers are generalized via polymorphism in:
 scp_solver.py
 ```
 
-SCP solvers define a subclass of SCPSolver. Current examples are CartpoleSolverVelocity, CartpoleSolverForce and DiffDriveSolver (see the Contents section). These solvers use cvxpy and pytorch. These solvers are based on principles and examples covered in Optimal Control (e.g., AA203, Optimal and Learning-based Control).
+SCP solvers define a subclass of SCPSolver. Current examples are CartpoleSolverVelocity, CartpoleSolverForce and DiffDriveSolver (see the Contents section). These solvers use cvxpy and pytorch. These solvers are based on principles and examples covered in Optimal Control (e.g., Stanford AA203, Optimal and Learning-based Control).
 
 # Robot control trajectory solutions
 
