@@ -131,4 +131,4 @@ And, finally, the movie:
 <img src="nn_test_3.gif" alt="nn_test_3.gif" width="500"/>
 
 For this test (more to come), the NN seems to have nailed the controller.
-The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (a la, DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut!
+The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (_a la_ DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut!
