@@ -155,13 +155,112 @@ Euler-Lagrange now yields two equations:
 \frac{d}{dt} \left(\frac{\partial \mathcal{L}}{\partial \dot{\theta}} \right) - \frac{\partial \mathcal{L}}{\partial \theta} = 0
 \end{equation}
 
-By substitution of expressions for $T$ and $V$, and some algebra, this yields:
+The first (force) equation yields:
 
+\begin{equation}
+\frac{1}{2} m_p L \left(\cos{\theta} \ddot{\theta} - \sin{\theta} \dot{\theta}^2 \right) + \left( m_p + m_c\right) \ddot{x} = F_x
+\end{equation}
+
+and the second (torque) equation yields:
+
+\begin{equation}
+\frac{2}{3} L \ddot{\theta} + \cos{\theta} \ddot{x} + g \sin{\theta}  = 0
+\end{equation}
+
+or, conveniently:
+
+\begin{equation}
+\ddot{\theta} = - \frac{3}{2L} \left( \cos{\theta} \ddot{x} + g \sin{\theta} \right)
+\end{equation}
+
+This equation alone can be used to establish an ODE for the cartpole system with the ``velocity'' servo actuation model:
+
+\begin{equation}
+\dot{v} = \frac{v_c - v}{\tau}
+\end{equation}
+
+or:
+
+\begin{equation}
+\ddot{x} = \frac{v_c - \dot{x}}{\tau}
+\end{equation}
+
+where $v_c$ is the velocity control. The state ODE for this system is below.
+
+For cart force actuation, we can decouple the above (coupled) equations in $\ddot{\theta}$ and $\ddot{x}$ by thrashing about with some algebra, yielding:
+
+
+\begin{equation}
+\ddot{\theta} = -\frac{6 F_x \cos{\theta} + 6 g \sin{\theta}\left( m_c + m_p \right) + 3 m_p L \sin{\theta}\cos{\theta}\dot{\theta}^2 }{d L}
+\end{equation}
+
+
+\begin{equation}
+\ddot{x} = \frac{4 F_x \cos{\theta} + 3 g m_p \sin{\theta}\cos{\theta} + 2 m_p L \sin{\theta}\dot{\theta}^2 }{d}
+\end{equation}
+
+where the denominator factor $d$ is:
+
+\begin{equation}
+d = 4 m_c + m_p \left(1 + 3 \sin^2{\theta}\right)
+\end{equation}
+
+Below we assume the following state space:
+
+\begin{align}
+s = 
+\begin{bmatrix}
+x \\
+\theta \\
+\dot{x} \\
+\dot{\theta} 
+\end{bmatrix}
+\end{align}
 
 
 \subsection{Cart force control}
 
+The above equations yield the following first order cartpole system, assuming force control:
+
+
+\begin{align}
+\dot{s} = 
+\begin{bmatrix}
+\dot{x} \\
+\dot{\theta} \\
+\ddot{x} \\
+\ddot{\theta} 
+\end{bmatrix}
+=
+\begin{bmatrix}
+\dot{x} \\
+\dot{\theta} \\
+\frac{4 F_x \cos{\theta} + 3 g m_p \sin{\theta}\cos{\theta} + 2 m_p L \sin{\theta}\dot{\theta}^2 }{d} \\
+-\frac{6 F_x \cos{\theta} + 6 g \sin{\theta}\left( m_c + m_p \right) + 3 m_p L \sin{\theta}\cos{\theta}\dot{\theta}^2 }{d L}
+\end{bmatrix}
+\end{align}
+
+
 \subsection{Cart velocity servo control}
+
+For the velocity servo control, we have the simpler (force-free) equations:
+
+\begin{align}
+\dot{s} = 
+\begin{bmatrix}
+\dot{x} \\
+\dot{\theta} \\
+\ddot{x} \\
+\ddot{\theta} 
+\end{bmatrix}
+=
+\begin{bmatrix}
+\dot{x} \\
+\dot{\theta} \\
+\frac{v_c - \dot{x}}{\tau} \\
+- \frac{3}{2L} \left(  \frac{v_c - \dot{x}}{\tau} \cos{\theta} + g \sin{\theta} \right)
+\end{bmatrix}
+\end{align}
 
 \subsection{The \texttt{cvxpy} experience}
 
