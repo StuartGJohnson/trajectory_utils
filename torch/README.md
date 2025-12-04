@@ -146,4 +146,6 @@ The animation of this rollout is:
 
 For this test particular test, the NN seems to have nailed the controller. But, in general the model is insufficient. According to the metrics, only around 25% of the sampled trajectories satisfied limits on goals and constraints.
 
-The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (_a la_ DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut!
+The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (_a la_ DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut! Also, the trajectory data is heavily biased to the slow parts of the trajectory:
+
+<img src="trajectories_big_1_theta_hist.png" alt="trajectories_big_1_theta_hist.png" width="500"/>
