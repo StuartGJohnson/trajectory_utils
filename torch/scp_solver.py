@@ -34,12 +34,19 @@ class SolverParams:
     rho: float
     # convergence tolerance
     eps: float
+    # convergence tolerance - cvxpy
+    cvxpy_eps: float
     # maximum number of SCP iterations
     max_iters: int
     # state max
     s_max: np.ndarray
     # control max
     u_max: np.ndarray
+    # deal with some interface migration.
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if 'cvxpy_eps' not in self.__dict__:
+            self.cvxpy_eps = 1e-4
 
 class SCPSolver:
     # basic SCP parameters (see the init method for docstrings)
@@ -210,7 +217,7 @@ class SCPSolver:
             self.linearize_constraints(s, u)
             self.s_prev_param.value = s
             self.u_prev_param.value = u
-            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=1e-4, max_iters=40000)
+            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=self.params.cvxpy_eps, max_iters=40000)
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break

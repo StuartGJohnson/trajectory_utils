@@ -32,6 +32,7 @@ def main():
                               R=0.001 * np.eye(1),
                               rho=0.05,
                               eps=0.005,
+                              cvxpy_eps=1e-4,
                               max_iters=10000,
                               u_max=np.array([1.77]),
                               s_max=np.array([0.44 / 2.0, 1000, 0.8, 1000])[None, :])

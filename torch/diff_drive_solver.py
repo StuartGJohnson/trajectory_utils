@@ -22,18 +22,13 @@ class DiffDriveSolver(SCPSolver):
     c_param_sdf: List[cvx.Parameter]
     slack_obs: cvx.Variable
 
-    def __init__(self, sp:SolverParams, u_min, sdf: SDF, rho_u):
+    def __init__(self, sp:SolverParams, u_min, rho_u):
         super().__init__(sp=sp)
         self.u_min = u_min
         self.rho_u = rho_u
-        self.setup_this(sdf)
-
-    def setup_this(self, sdf: SDF):
         super().setup()
-        # add the function for the sdf interpolator
-        self.sdf_interpolator = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)
 
-    def reset_custom(self, s0:np.ndarray, u_goal:np.ndarray, u_final:np.ndarray, N:int):
+    def reset_custom(self, s0:np.ndarray, u_goal:np.ndarray, u_final:np.ndarray, N:int, sdf: SDF):
         """
         N : int
             The time horizon (N * dt) of the solver.
@@ -48,6 +43,7 @@ class DiffDriveSolver(SCPSolver):
         self.s0 = s0
         self.s_goal = np.array([])
         self.N = N
+        self.sdf_interpolator = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)
         self.s0 = s0
         self.u_final = u_final
         self.u_goal = u_goal

@@ -44,6 +44,7 @@ def main():
                               R=np.eye(m),
                               rho=0.05,
                               eps=0.001,
+                              cvxpy_eps=.001,
                               max_iters=10000,
                               u_max=np.array([max_robot_v, max_robot_omega])[None,:],
                               s_max=np.array([]))
@@ -51,8 +52,8 @@ def main():
     t = np.arange(0.0, T + dt, dt)
     N = t.size - 1
 
-    solver = DiffDriveSolver(sp=solver_params, u_min=u_min, sdf=sdf, rho_u=rho_u)
-    solver.reset_custom(s0, u_goal, u_final, N)
+    solver = DiffDriveSolver(sp=solver_params, u_min=u_min, rho_u=rho_u)
+    solver.reset_custom(s0, u_goal, u_final, N, sdf=sdf)
     solver.initialize_trajectory()
 
     s, u, J, conv, status = solver.solve()
