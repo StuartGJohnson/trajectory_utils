@@ -6,7 +6,7 @@ Tools for computing or manipulating trajectories for robotics or control systems
 
 This code has been targeted to run on top of ROS2 Humble. An example would be running a trajectory solver from within a ROS2 node. Current procedure is to use a virtual env, which can safely extend your ROS2 Humble installation. This repo was developed and used on linux platforms running python 3.10.12 (the version supported by ROS2 Humble).
 
-A makefile is included with useful targets, to be run from the ```torch``` directory, e.g.:
+A makefile is included with useful targets, to be run from the repo directory, e.g.:
 
 ```
 make setup-cu124
