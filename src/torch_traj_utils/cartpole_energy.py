@@ -4,7 +4,7 @@ Cartpole energy calcs. May need to be differentiable (hence pytorch).
 
 import torch
 import numpy as np
-from cartpole import CartpoleEnvironmentParams
+from torch_traj_utils.cartpole import CartpoleEnvironmentParams
 
 class CartpoleEnergy:
     ep: CartpoleEnvironmentParams

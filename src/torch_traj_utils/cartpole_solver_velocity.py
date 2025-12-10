@@ -2,13 +2,13 @@
 Cart velocity (servo) controlled cartpole.
 """
 
-from scp_solver import SCPSolver, SolverParams
+from torch_traj_utils.scp_solver import SCPSolver, SolverParams
 
 import cvxpy as cvx
 import torch
 import numpy as np
-from cartpole import CartpoleEnvironmentParams
-from cartpole_energy import CartpoleEnergy
+from torch_traj_utils.cartpole import CartpoleEnvironmentParams
+from torch_traj_utils.cartpole_energy import CartpoleEnergy
 
 class CartpoleSolverVelocity(SCPSolver):
     ep: CartpoleEnvironmentParams

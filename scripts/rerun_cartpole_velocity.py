@@ -2,9 +2,9 @@
 Cart velocity (servo) controlled cartpole.
 """
 
-from cartpole_solver_velocity import CartpoleSolverVelocity
+from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity
 
-from animate_cartpole import animate_cartpole
+from torch_traj_utils.animate_cartpole import animate_cartpole
 import matplotlib.pyplot as plt
 import numpy as np
 

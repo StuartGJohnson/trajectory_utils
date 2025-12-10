@@ -1,8 +1,8 @@
 
-from trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
-from cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
+from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
 
-from plot_trajectory import plot_trajectory
+from torch_traj_utils.plot_trajectory import plot_trajectory
 import numpy as np
 import pickle
 import os

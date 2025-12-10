@@ -2,16 +2,16 @@
 Force (on cart) controlled cartpole. A specialization of SCPSolver.
 """
 
-from trajectory import TrajectoryScenario
-from cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
-from cartpole_expert import CartpoleForceSwingupExpert
-from plot_trajectory import plot_trajectory
-from cartpole_solver_force import CartpoleSolverForce
+from torch_traj_utils.trajectory import TrajectoryScenario
+from torch_traj_utils.cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.cartpole_expert import CartpoleForceSwingupExpert
+from torch_traj_utils.plot_trajectory import plot_trajectory
+from torch_traj_utils.cartpole_solver_force import CartpoleSolverForce
 
-from animate_cartpole import animate_cartpole
+from torch_traj_utils.animate_cartpole import animate_cartpole
 import matplotlib.pyplot as plt
 import numpy as np
-from cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
 import pickle
 
 def main():
@@ -31,6 +31,7 @@ def main():
                               Q=np.diag([10, 2, 1, 0.25]), #Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
                               R=0.001 * np.eye(1),
                               rho=0.05,
+                              rho_u=0.02,
                               eps=0.005,
                               cvxpy_eps=1e-4,
                               max_iters=10000,

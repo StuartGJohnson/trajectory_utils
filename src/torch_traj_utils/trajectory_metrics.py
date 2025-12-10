@@ -8,10 +8,10 @@ import os
 import glob
 import torch.nn as nn
 import numpy as np
-from scp_solver import SolverParams
-from cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams
-from trajectory import TrajectoryScenario, Trajectory
-from plot_trajectory import plot_trajectory
+from torch_traj_utils.scp_solver import SolverParams
+from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams
+from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory
+from torch_traj_utils.plot_trajectory import plot_trajectory
 from torch.utils.data import TensorDataset, DataLoader, random_split
 from torch import Tensor
 from dataclasses import dataclass
@@ -20,7 +20,12 @@ from typing import List, Tuple
 def load_checkpoint(trained_model_dir: str, trained_model_epoch: List[int]) -> nn.Sequential:
     tdir = trained_model_dir
     epoch_num = trained_model_epoch
-    fdir = os.path.join("train",tdir)
+    # work around the dubious hack of
+    # forcing the user's directory structure
+    if "train" not in tdir:
+        fdir = os.path.join("train",tdir)
+    else:
+        fdir = tdir
     epoch_str = ""
     for sub_epoch in trained_model_epoch:
         epoch_str += "_"
@@ -172,6 +177,7 @@ class TrajectoryMetrics:
                                      # Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
                                      R=0.001 * np.eye(1),
                                      rho=0.05,
+                                     rho_u=0.02,
                                      eps=0.005,
                                      cvxpy_eps=1e-4,
                                      max_iters=1000,

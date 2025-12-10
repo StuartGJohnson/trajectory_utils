@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import distance_transform_edt as edt
 from scipy.ndimage import gaussian_filter
 
-from scalar_field_interpolator import ScalarFieldInterpolator, SDF
+from torch_traj_utils.scalar_field_interpolator import ScalarFieldInterpolator, SDF, SDF0, OcccupancyMapGenerator, OccupancyMap
 
-class MyTestCase(unittest.TestCase):
+class SDFTest(unittest.TestCase):
 
     def test_edt(self):
         # we need smooth (negative) SDT even inside obstacles
@@ -28,11 +28,47 @@ class MyTestCase(unittest.TestCase):
         plt.show()
 
     def test_room(self):
-        sdf = SDF(1, 1, 0.5, 0.5, .02)
+        sdf = SDF0(1, 1, 0.5, 0.5, .02)
         sdf.generate(0.14, 0.14)
 
+    def test_room_new(self):
+        omg = OcccupancyMapGenerator(1, 1, 0.5, 0.5, .02)
+        occ_map = omg.generate_dd_test()
+        sdf = SDF(occ_map, 0.14, 0.14)
+
+    def test_sample_new(self):
+        omg = OcccupancyMapGenerator(3, 2, -1.5, -1.0, .02)
+        occ_map = omg.generate_dd_test()
+        sdf = SDF(occ_map, 0.14, 0.14)
+
+        sfi = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)
+
+        dx = 0.05
+        x = np.arange(sdf.ox, sdf.ox+sdf.x_size + dx, dx)
+        y = np.arange(sdf.oy, sdf.oy+sdf.y_size + dx, dx)
+        xx, yy = np.meshgrid(x, y)
+
+        s_pts = np.stack([xx.ravel(), yy.ravel()], axis=1)
+        u_pts = np.zeros(s_pts.shape)
+        S = torch.from_numpy(s_pts)
+        U = torch.from_numpy(u_pts)
+
+        c = vmap(sfi.interpolator, in_dims=(0, 0))(S, U)  # (T,)
+        c_np = c.detach().cpu().numpy()
+        c_np = np.reshape(c_np, (41,61))
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        plt.imshow(c_np,
+                   origin='lower',
+                   extent=[x.min(), x.max(), y.min(), y.max()],  # map array to coordinate bounds
+                   aspect='auto',  # or 'equal'
+                   cmap='viridis'
+                   )
+        plt.colorbar()
+        plt.show()
+
     def test_sample(self):
-        sdf = SDF(3, 2, -1.5, -1.0, .02)
+        sdf = SDF0(3, 2, -1.5, -1.0, .02)
         sdf.generate(0.14, 0.14)
 
         sfi = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)
@@ -61,8 +97,35 @@ class MyTestCase(unittest.TestCase):
         plt.colorbar()
         plt.show()
 
+    def test_jacobian_new(self):
+        omg = OcccupancyMapGenerator(2, 2, -1, -1, .02)
+        occ_map = omg.generate_dd_test()
+        sdf = SDF(occ_map, 0.14, 0.14)
+
+        sfi = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)
+
+        s_pts = np.array([[-0.5, -0.5, 42], [0.0, -0.5, 43], [-0.5, 0.0, 44], [0.0, 0.0, 45]],dtype=np.float32)
+        u_pts = np.array([[0.0], [0.0], [0.0], [0.0]], dtype=np.float32)
+
+        S = torch.from_numpy(s_pts)
+        U = torch.from_numpy(u_pts)
+
+        jac_fun = jacrev(sfi.interpolator, argnums=(0, 1))
+        c = vmap(sfi.interpolator, in_dims=(0, 0))(S, U)  # (T,)
+        A, B = vmap(jac_fun, in_dims=(0, 0))(S, U)  # A: (T,4), B: (T,1)
+
+        d = c - torch.einsum('tij,tj->ti', A, S) - torch.einsum('tij,tj->ti', B, U)
+        # back to numpy
+        d_ret = d.detach().cpu().numpy()
+        A_ret = A.detach().cpu().numpy()
+        B_ret = B.detach().cpu().numpy()
+
+        print(d_ret)
+        print(A_ret)
+        print(B_ret)
+
     def test_jacobian(self):
-        sdf = SDF(2, 2, -1, -1, .02)
+        sdf = SDF0(2, 2, -1, -1, .02)
         sdf.generate(0.14, 0.14)
 
         sfi = ScalarFieldInterpolator(sdf.sdf, sdf.ox, sdf.oy, sdf.res)

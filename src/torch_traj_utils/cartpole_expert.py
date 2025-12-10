@@ -2,9 +2,9 @@
 Cartpole experts.
 """
 
-from trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
-from cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
-from cartpole_solver_force import CartpoleSolverForce
+from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
+from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.cartpole_solver_force import CartpoleSolverForce
 import numpy as np
 
 class CartpoleVelocitySwingupExpert(TrajectoryExpert):

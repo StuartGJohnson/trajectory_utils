@@ -1,14 +1,14 @@
 """
 Differential drive robot control trajectory planner.
 """
-from scp_solver import SCPSolver, SolverParams
+from torch_traj_utils.scp_solver import SCPSolver, SolverParams
 
 import cvxpy as cvx
 import torch
 import numpy as np
 from typing import Tuple, Callable, Any, List
 
-from scalar_field_interpolator import ScalarFieldInterpolator, SDF
+from torch_traj_utils.scalar_field_interpolator import ScalarFieldInterpolator, SDF
 
 class DiffDriveSolver(SCPSolver):
     sdf_interpolator: ScalarFieldInterpolator
@@ -22,13 +22,11 @@ class DiffDriveSolver(SCPSolver):
     c_param_sdf: List[cvx.Parameter]
     slack_obs: cvx.Variable
 
-    def __init__(self, sp:SolverParams, u_min, rho_u):
+    def __init__(self, sp:SolverParams):
         super().__init__(sp=sp)
-        self.u_min = u_min
-        self.rho_u = rho_u
         super().setup()
 
-    def reset_custom(self, s0:np.ndarray, u_goal:np.ndarray, u_final:np.ndarray, N:int, sdf: SDF):
+    def reset_custom(self, s0:np.ndarray, u_goal:np.ndarray, u_final:np.ndarray, u_min:np.ndarray, N:int, sdf: SDF):
         """
         N : int
             The time horizon (N * dt) of the solver.
@@ -47,6 +45,7 @@ class DiffDriveSolver(SCPSolver):
         self.s0 = s0
         self.u_final = u_final
         self.u_goal = u_goal
+        self.u_min = u_min
         n = self.params.Q.shape[0]
         m = self.params.R.shape[0]
         # declare additional optimization parameters and variables
@@ -71,7 +70,7 @@ class DiffDriveSolver(SCPSolver):
         #constraints += [self.c_param_sdf[i] + self.A_param_sdf[i] @ self.s_cvx[i] + self.slack_obs[i] >= 0.0 for i in range(1, self.N)]
         constraints += [self.c_param_sdf[i] + self.A_param_sdf[i] @ self.s_cvx[i] >= 0.0 for i in range(1, self.N)]
         constraints += [cvx.max(cvx.abs(self.s_cvx - self.s_prev_param)) <= self.params.rho]
-        constraints += [cvx.max(cvx.abs(self.u_cvx - self.u_prev_param)) <= self.rho_u]
+        constraints += [cvx.max(cvx.abs(self.u_cvx - self.u_prev_param)) <= self.params.rho_u]
 
         prob = cvx.Problem(cvx.Minimize(objective), constraints)
         return prob

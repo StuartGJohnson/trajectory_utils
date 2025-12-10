@@ -3,9 +3,9 @@ First cut at generating some training data.
 This code writes trajectories to disk.
 """
 
-from trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
-from cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
-from cartpole_expert import CartpoleVelocitySwingupExpert
+from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
+from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.cartpole_expert import CartpoleVelocitySwingupExpert
 import numpy as np
 import pickle
 import os
@@ -29,6 +29,7 @@ def worker(trial_range: range, worker_num: int, output_dir: str):
                               Q=np.diag([10, 2, 1, 0.25]), #Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
                               R=0.001 * np.eye(1),
                               rho=0.05,
+                              rho_u=0.02,
                               eps=0.005,
                               cvxpy_eps=1e-4,
                               max_iters=1000,

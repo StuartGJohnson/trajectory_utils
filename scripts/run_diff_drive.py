@@ -2,13 +2,13 @@
 Differential drive robot control trajectory planner.
 """
 
-from diff_drive_solver import DiffDriveSolver, SolverParams
+from torch_traj_utils.diff_drive_solver import DiffDriveSolver, SolverParams
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.func import vmap
 
-from scalar_field_interpolator import SDF
+from torch_traj_utils.scalar_field_interpolator import SDF, OccupancyMap, OcccupancyMapGenerator
 
 def main():
     # Define occupancy map and obstacle avoidance signed distance function
@@ -21,8 +21,11 @@ def main():
     x_origin = -1.5
     y_origin = -1.0
     resolution = 0.02
-    sdf = SDF(x_size, y_size, x_origin, y_origin, resolution)
-    sdf.generate(robot_radius, obstacle_radius)
+    omg = OcccupancyMapGenerator(x_size, y_size, x_origin, y_origin, resolution)
+    occ_map = omg.generate_dd_test()
+    sdf = SDF(occ_map, robot_radius, obstacle_radius)
+    # sdf = SDF(x_size, y_size, x_origin, y_origin, resolution)
+    # sdf.generate(robot_radius, obstacle_radius)
     # state dim
     n = 3
     #control dim
@@ -43,6 +46,7 @@ def main():
                               Q=np.eye(n),
                               R=np.eye(m),
                               rho=0.05,
+                              rho_u=0.02,
                               eps=0.001,
                               cvxpy_eps=.001,
                               max_iters=10000,
@@ -52,8 +56,8 @@ def main():
     t = np.arange(0.0, T + dt, dt)
     N = t.size - 1
 
-    solver = DiffDriveSolver(sp=solver_params, u_min=u_min, rho_u=rho_u)
-    solver.reset_custom(s0, u_goal, u_final, N, sdf=sdf)
+    solver = DiffDriveSolver(sp=solver_params)
+    solver.reset_custom(s0, u_goal, u_final, u_min, N, sdf=sdf)
     solver.initialize_trajectory()
 
     s, u, J, conv, status = solver.solve()

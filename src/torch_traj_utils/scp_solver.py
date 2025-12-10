@@ -32,6 +32,8 @@ class SolverParams:
     R: np.ndarray
     # trust region size
     rho: float
+    # trust region size - control
+    rho_u: float
     # convergence tolerance
     eps: float
     # convergence tolerance - cvxpy

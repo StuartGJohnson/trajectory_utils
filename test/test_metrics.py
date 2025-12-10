@@ -4,14 +4,14 @@ import torch.nn as nn
 import torch
 import os
 from typing import List
-from trajectory_metrics import TrajectoryMetrics, TrajMetric, load_checkpoint
-from train import load_dataset
+from torch_traj_utils.trajectory_metrics import TrajectoryMetrics, TrajMetric, load_checkpoint
+from torch_traj_utils.load_training_dataset import load_dataset
 from torch.utils.data import TensorDataset, DataLoader, random_split
 
 class MyTestCase(unittest.TestCase):
     def test_metrics_rand(self):
         # construct metrics from random seeds; run on one chkpt file
-        model = load_checkpoint("trajectories_big_1_32", [205,])
+        model = load_checkpoint("../scripts/train/trajectories_big_1_32", [205,])
 
         # construct metrics
         tmet = TrajectoryMetrics()
@@ -29,10 +29,10 @@ class MyTestCase(unittest.TestCase):
 
     def test_metrics_loader(self):
         # construct metrics from existing stored s0; run on one chkpt file
-        model = load_checkpoint("trajectories_big_1_32", [205,])
+        model = load_checkpoint("../scripts/train/trajectories_big_1_32", [205,])
 
         # load s0 from training dataset
-        __, train_s0, _, _ = load_dataset("trajectories_big_1_training.npz")
+        __, train_s0, _, _ = load_dataset("../scripts/trajectories_big_1_training.npz")
         train_s0_loader = DataLoader(train_s0, batch_size=128, shuffle=False)
         # construct metrics
         tmet = TrajectoryMetrics()

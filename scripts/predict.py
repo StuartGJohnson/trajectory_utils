@@ -4,9 +4,9 @@ import torch
 import os
 import torch.nn as nn
 import numpy as np
-from trajectory import TrajectoryScenario, Trajectory
-from plot_trajectory import plot_trajectory
-from trajectory_metrics import TrajectoryMetrics, TrajMetric, load_checkpoint
+from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory
+from torch_traj_utils.plot_trajectory import plot_trajectory
+from torch_traj_utils.trajectory_metrics import TrajectoryMetrics, TrajMetric, load_checkpoint
 
 
 def predict(trained_model_dir: str, trained_model_epoch: list, output_filename: str):

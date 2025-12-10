@@ -23,10 +23,6 @@ class MyTestCase(unittest.TestCase):
         print("\n")
         print(one_pull)
 
-    def test_files(self):
-        for f in os.listdir("trajectories_test"):
-            print(f)
-
     def test_numpy_append(self):
         all_arr = []
         for i in range(0,3):

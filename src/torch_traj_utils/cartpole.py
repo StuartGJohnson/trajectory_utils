@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
-from trajectory import Trajectory, TrajectoryScenario
+from torch_traj_utils.trajectory import Trajectory, TrajectoryScenario
 
 @dataclass
 class CartpoleEnvironmentParams:

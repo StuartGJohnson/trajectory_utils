@@ -1,9 +1,9 @@
 import numpy as np
-from scp_solver import SolverParams
-from cartpole import CartpoleEnvironmentParams
-from trajectory import Trajectory,TrajectoryScenario
+from torch_traj_utils.scp_solver import SolverParams
+from torch_traj_utils.cartpole import CartpoleEnvironmentParams
+from torch_traj_utils.trajectory import Trajectory,TrajectoryScenario
 import matplotlib.pyplot as plt
-from animate_cartpole import animate_cartpole
+from torch_traj_utils.animate_cartpole import animate_cartpole
 
 def plot_trajectory(solver_params: SolverParams, env_params: CartpoleEnvironmentParams, traj: Trajectory, filename_base: str, animate=False):
     # Plot state and control trajectories
