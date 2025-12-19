@@ -23,7 +23,7 @@ class CartpoleVelocitySwingupExpert(TrajectoryExpert):
         N = t.size - 1
         self.solver.reset(sc.s0, sc.s_goal, N)
         self.solver.initialize_trajectory()
-        s, u, J, conv, status = self.solver.solve()
+        s, u, J, conv, status, time, iters = self.solver.solve()
         # update with a rollout
         s,u = self.solver.rollout(s, u)
         en_tot = self.solver.energy.compute_energy(s)
@@ -37,7 +37,9 @@ class CartpoleVelocitySwingupExpert(TrajectoryExpert):
                           conv=conv,
                           status=status,
                           energy1=en_tot,
-                          energy2=en_pole)
+                          energy2=en_pole,
+                          time=time,
+                          iters=iters)
 
 
 class CartpoleForceSwingupExpert(TrajectoryExpert):
@@ -56,7 +58,7 @@ class CartpoleForceSwingupExpert(TrajectoryExpert):
         N = t.size - 1
         self.solver.reset(sc.s0, sc.s_goal, N)
         self.solver.initialize_trajectory()
-        s, u, J, conv, status = self.solver.solve()
+        s, u, J, conv, status, time, iters = self.solver.solve()
         # update with a rollout
         s,u = self.solver.rollout(s, u)
         en_tot = self.solver.energy.compute_energy(s)
@@ -70,4 +72,6 @@ class CartpoleForceSwingupExpert(TrajectoryExpert):
                           conv=conv,
                           status=status,
                           energy1=en_tot,
-                          energy2=en_pole)
+                          energy2=en_pole,
+                          time=time,
+                          iters=iters)

@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import TensorDataset
 from typing import Tuple
 
-def load_dataset(fname: str) -> Tuple[TensorDataset, TensorDataset, int, int]:
+def load_dataset_np(fname: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, int, int]:
+    """Core dataset loader - also handy for plotting."""
     data = np.load(fname)
     x = data['first_array']
     y = data['second_array']
@@ -18,6 +19,13 @@ def load_dataset(fname: str) -> Tuple[TensorDataset, TensorDataset, int, int]:
     input_dim = x.shape[1]
     output_dim = y.shape[1] if y.ndim > 1 else 1
 
+    return x, y, z, input_dim, output_dim
+
+
+def load_dataset(fname: str) -> Tuple[TensorDataset, TensorDataset, int, int]:
+    x, y, z, input_dim, output_dim = load_dataset_np(fname)
+
+    # to pytorch
     xt = torch.from_numpy(x).float()
     yt = torch.from_numpy(y).float()
     zt = torch.from_numpy(z).float()

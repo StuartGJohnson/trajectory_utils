@@ -44,11 +44,15 @@ class SolverParams:
     s_max: np.ndarray
     # control max
     u_max: np.ndarray
+    # max solve time
+    max_solve_secs: float
     # deal with some interface migration.
     def __setstate__(self, state):
         self.__dict__.update(state)
         if 'cvxpy_eps' not in self.__dict__:
             self.cvxpy_eps = 1e-4
+        if 'max_solve_secs' not in self.__dict__:
+            self.max_solve_secs = -1.0
 
 class SCPSolver:
     # basic SCP parameters (see the init method for docstrings)
@@ -183,7 +187,7 @@ class SCPSolver:
         self.s_init = s_init
         self.u_init = u_init
 
-    def solve(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool, str]:
+    def solve(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool, str, float, int]:
         """Solve over the time horizon via SCP.
 
         Arguments from class
@@ -223,6 +227,12 @@ class SCPSolver:
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break
+            if self.params.max_solve_secs > 0 and ((i + 1) % 100) == 0:
+                this_time = time.time()
+                elapsed_time = this_time - start_time
+                if elapsed_time > self.params.max_solve_secs:
+                    print("SCP solve failed. Max time exceeded: {} ".format(elapsed_time))
+                    break
             s = self.s_cvx.value
             u = self.u_cvx.value
             J[i+1] = self.prob.objective.value
@@ -234,8 +244,9 @@ class SCPSolver:
         J = J[1 : i + 1]
         end_time = time.time()
         elapsed_time = end_time - start_time
+        iterations = i
         print(f"Solve time: {elapsed_time:.4f} seconds")
-        return s, u, J, converged, self.prob.status
+        return s, u, J, converged, self.prob.status, elapsed_time, iterations
 
     def discretize(self, f:Callable, dt: float) -> Callable:
         """

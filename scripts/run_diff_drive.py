@@ -51,7 +51,8 @@ def main():
                               cvxpy_eps=.001,
                               max_iters=10000,
                               u_max=np.array([max_robot_v, max_robot_omega])[None,:],
-                              s_max=np.array([]))
+                              s_max=np.array([]),
+                              max_solve_secs=-1.0)
 
     t = np.arange(0.0, T + dt, dt)
     N = t.size - 1
@@ -60,7 +61,7 @@ def main():
     solver.reset_custom(s0, u_goal, u_final, u_min, N, sdf=sdf)
     solver.initialize_trajectory()
 
-    s, u, J, conv, status = solver.solve()
+    s, u, J, conv, status, time, iters = solver.solve()
 
     print("SCP convergence: " + str(conv))
 

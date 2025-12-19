@@ -24,6 +24,8 @@ class Trajectory:
     status: str
     energy1: np.ndarray
     energy2: np.ndarray
+    time: float
+    iters: int
 
 class TrajectoryExpert:
     def trajectory(self, sc: TrajectoryScenario) -> Trajectory:

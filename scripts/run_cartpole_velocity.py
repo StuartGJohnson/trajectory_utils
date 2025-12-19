@@ -35,7 +35,8 @@ def main():
                               cvxpy_eps=1e-4,
                               max_iters=1000,
                               u_max=np.array([0.8]),
-                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 5*np.pi])[None, :])
+                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 5*np.pi])[None, :],
+                              max_solve_secs=-1.0)
 
     # goal state: pole upright
     s_goal = np.array([0.0, np.pi, 0.0, 0.0])

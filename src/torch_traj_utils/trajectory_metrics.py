@@ -93,13 +93,16 @@ state_symbols = ["x", "θ", "x'", "θ'"]
 state_and_control_symbols = ["x", "θ", "x'", "θ'", "u"]
 overall_symbols = ["goal", "state lim", "control_lim", "overall"]
 
-def metrics_print(description:str,  symbols: List[str], vals:np.ndarray):
+def metrics_print(description:str,  symbols: List[str], vals:np.ndarray, logger=None):
     line = (
             f"{description} | "
             + " | ".join(f"{s}: {v:.4f}" for s, v in zip(symbols, vals))
             + " |"
     )
-    print(line)
+    if logger is not None:
+        logger.info(line)
+    else:
+        print(line)
 
 @dataclass
 class TrajMetricInd:
@@ -128,34 +131,35 @@ class TrajMetric:
     all_success: float
 
     # pretty print
-    def pretty_print(self):
+    def pretty_print(self, logger=None):
         metrics_print(
             "     max goal error (norm)",
             state_symbols,
-            self.max_goal_error)
+            self.max_goal_error, logger)
         metrics_print(
             "     median goal error (norm)",
             state_symbols,
-            self.median_goal_error)
+            self.median_goal_error, logger)
         metrics_print(
             "     goal success rate",
             state_symbols,
-            self.goal_success)
+            self.goal_success, logger)
         metrics_print(
             "     constraint max error (norm)",
             state_and_control_symbols,
-            np.hstack((self.max_state_error, self.max_control_error)))
+            np.hstack((self.max_state_error, self.max_control_error)), logger)
         metrics_print(
             "     constraint success rate",
             state_and_control_symbols,
-            np.hstack((self.state_success, self.control_success)))
+            np.hstack((self.state_success, self.control_success)), logger)
         metrics_print(
             "     overall success rate",
             overall_symbols,
-            np.array([self.all_goal_success, self.all_state_success, self.all_control_success, self.all_success]))
+            np.array([self.all_goal_success, self.all_state_success, self.all_control_success, self.all_success]),
+            logger)
 
 class TrajectoryMetrics:
-    def __init__(self):
+    def __init__(self, set_dtype: bool = True, goal_limits: np.ndarray = np.array([0.25, 0.1, 0.1, 0.1])):
         # use limits from the trajectory solver for normalization
         self.state_normalization = [0.22, np.pi, 0.8, 5 * np.pi]
         self.action_normalization = [0.8, ]
@@ -182,7 +186,8 @@ class TrajectoryMetrics:
                                      cvxpy_eps=1e-4,
                                      max_iters=1000,
                                      u_max=np.array([0.8]),
-                                     s_max=np.array([0.44 / 2.0, 1000, 0.8, 5 * np.pi])[None, :])
+                                     s_max=np.array([0.44 / 2.0, 1000, 0.8, 5 * np.pi])[None, :],
+                                     max_solve_secs=200.0)
 
         self.sc = TrajectoryScenario(s_goal=np.array([0.0, np.pi, 0.0, 0.0]),
                                 s0=np.array([0.0, 0.0, 0.0, 0.0]),
@@ -193,12 +198,13 @@ class TrajectoryMetrics:
 
         self.rand_state_vec = []
         self.batch_size = -1
+        self.set_dtype = set_dtype
 
         self.t = np.arange(self.sc.t0, self.sc.T + self.solver_params.dt, self.solver_params.dt)
         self.N = self.t.size - 1
 
         # give goals some slack - 10%, but perhaps a bit more on x
-        self.goal_limits = np.array(self.state_normalization) * np.array([0.25, 0.1, 0.1, 0.1])
+        self.goal_limits = np.array(self.state_normalization) * goal_limits
         # give this limits 5% slack
         self.control_limits = self.solver_params.u_max * np.array([0.05])
         self.state_limits = np.array(self.state_normalization) * np.array([0.05, 0.05, 0.05, 0.05])
@@ -221,7 +227,7 @@ class TrajectoryMetrics:
             s0_batch = np.squeeze(np.random.uniform(-state_vec, state_vec, size=(self.batch_size, 4)))
             self.rand_batches.append(s0_batch)
 
-    def eval_metrics(self, model: nn.Sequential, loader: DataLoader, device):
+    def eval_metrics(self, model: nn.Sequential | nn.Module, loader: DataLoader, device):
         """ evaluate metrics across all batches provided by the data loader.
         I am assuming the loader provides initial states by batch."""
 
@@ -235,14 +241,14 @@ class TrajectoryMetrics:
         metrics, _ = self.collect_metrics()
         return metrics
 
-    def collect_random_batch(self, model: nn.Sequential, i_batch: int, return_traj: bool = False) -> None | Tuple[np.ndarray, np.ndarray]:
+    def collect_random_batch(self, model: nn.Sequential | nn.Module, i_batch: int, return_traj: bool = False) -> None | Tuple[np.ndarray, np.ndarray]:
         s0_batch = self.rand_batches[i_batch]
         s0_nn = to_nn_state(s0_batch, self.state_normalization)
         s_nn = torch.tensor(s0_nn)
         # these are pytorch tensors which can be fed to the model
         return self.collect_batch_data(model, s_nn, return_traj=return_traj)
 
-    def eval_metrics_rand(self, model: nn.Sequential, device):
+    def eval_metrics_rand(self, model: nn.Sequential | nn.Module, device):
 
         for i_batch in range(0, self.num_batches):
             self.collect_random_batch(model, i_batch)
@@ -318,7 +324,7 @@ class TrajectoryMetrics:
 
         return tm, tm_ind
 
-    def collect_batch_data(self, model: nn.Sequential, s0_batch: Tensor, return_traj: bool=False) -> None | Tuple[np.ndarray, np.ndarray]:
+    def collect_batch_data(self, model: nn.Sequential | nn.Module, s0_batch: Tensor, return_traj: bool=False) -> None | Tuple[np.ndarray, np.ndarray]:
         """roll out trajectories across the whole batch. collect stuff."""
         s_list = []
         u_list = []
@@ -326,8 +332,12 @@ class TrajectoryMetrics:
         p = next(model.parameters())
         with torch.no_grad():
             for i in range(0,self.N):
-                s_nn_to = s_nn.to(dtype=p.dtype, device=p.device)
+                if self.set_dtype:
+                    s_nn_to = s_nn.to(dtype=p.dtype, device=p.device)
+                else:
+                    s_nn_to = s_nn.to(device=p.device)
                 u_nn = model(s_nn_to)
+                u_nn = u_nn[0] if isinstance(u_nn, tuple) else u_nn
                 # to numpy
                 s_nn_np = s_nn.detach().cpu().numpy()
                 u_nn_np = u_nn.detach().cpu().numpy()
