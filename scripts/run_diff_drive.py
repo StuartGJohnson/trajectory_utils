@@ -52,7 +52,8 @@ def main():
                               max_iters=10000,
                               u_max=np.array([max_robot_v, max_robot_omega])[None,:],
                               s_max=np.array([]),
-                              max_solve_secs=-1.0)
+                              max_solve_secs=-1.0,
+                              solver_type="OSQP")
 
     t = np.arange(0.0, T + dt, dt)
     N = t.size - 1

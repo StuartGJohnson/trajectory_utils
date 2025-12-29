@@ -33,18 +33,19 @@ def main():
                               rho=0.05,
                               rho_u=0.02,
                               eps=0.005,
-                              cvxpy_eps=1e-4,
+                              cvxpy_eps=1e-3,
                               max_iters=10000,
                               u_max=np.array([1.77]),
                               s_max=np.array([0.44 / 2.0, 1000, 0.8, 1000])[None, :],
-                              max_solve_secs=-1.0)
+                              max_solve_secs=-1.0,
+                              solver_type="OSQP")
 
     # goal state: pole upright
     s_goal = np.array([0.0, np.pi, 0.0, 0.0])
     # start state: pole down-ish
     s0 = np.array([0.0, 0.0, 0.0, 0.0])
 
-    scenario = TrajectoryScenario(s_goal=s_goal, s0=s0, t0=0.0, T=4.0)
+    scenario = TrajectoryScenario(s_goal=s_goal, s0=s0, t0=0.0, T=2.0)
 
     expert = CartpoleForceSwingupExpert(ep=env_params, sp=solver_params)
 

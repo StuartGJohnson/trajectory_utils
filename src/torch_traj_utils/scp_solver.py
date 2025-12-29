@@ -46,6 +46,8 @@ class SolverParams:
     u_max: np.ndarray
     # max solve time
     max_solve_secs: float
+    # solver type: SCS or OSQP
+    solver_type: str
     # deal with some interface migration.
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -53,6 +55,8 @@ class SolverParams:
             self.cvxpy_eps = 1e-4
         if 'max_solve_secs' not in self.__dict__:
             self.max_solve_secs = -1.0
+        if 'solver_type' not in self.__dict__:
+            self.solver_type = "SCS"
 
 class SCPSolver:
     # basic SCP parameters (see the init method for docstrings)
@@ -218,12 +222,26 @@ class SCPSolver:
         J = np.zeros(self.params.max_iters + 1)
         J[0] = np.inf
         start_time = time.time()
+        other_status = None
         for i in range(self.params.max_iters):
             self.linearize_dynamics(s, u)
             self.linearize_constraints(s, u)
             self.s_prev_param.value = s
             self.u_prev_param.value = u
-            self.prob.solve(solver=cvx.SCS, warm_start=True, eps=self.params.cvxpy_eps, max_iters=40000)
+            if self.params.solver_type == "SCS":
+                self.prob.solve(solver=cvx.SCS, warm_start=True, eps=self.params.cvxpy_eps, max_iters=40000)
+            elif self.params.solver_type == "OSQP":
+                self.prob.solve(solver=cvx.OSQP,
+                                warm_start=True,
+                                eps_abs=self.params.cvxpy_eps,
+                                eps_rel=self.params.cvxpy_eps,
+                                max_iter=40000,
+                                polish=True,
+                                verbose=False)
+            else:
+                other_status = "Unknown solver!"
+                print("SCP solve failed: " + other_status)
+                break
             if self.prob.status != "optimal":
                 print("SCP solve failed. CVXPY problem status: " + self.prob.status)
                 break
@@ -246,6 +264,8 @@ class SCPSolver:
         elapsed_time = end_time - start_time
         iterations = i
         print(f"Solve time: {elapsed_time:.4f} seconds")
+        if other_status is not None:
+            return s, u, J, converged, other_status, elapsed_time, iterations
         return s, u, J, converged, self.prob.status, elapsed_time, iterations
 
     def discretize(self, f:Callable, dt: float) -> Callable:
