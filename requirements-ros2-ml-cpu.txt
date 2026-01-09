@@ -15,4 +15,5 @@ cvxpy
 ecos
 osqp
 scs
+casadi
 

@@ -12,4 +12,5 @@ dependencies:
   - ecos
   - osqp
   - scs
+  - casadi
 

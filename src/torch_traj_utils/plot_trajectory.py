@@ -1,13 +1,15 @@
 import numpy as np
 from torch_traj_utils.scp_solver import SolverParams
+from torch_traj_utils.cas_solver import CasadiSolverParams
 from torch_traj_utils.cartpole import CartpoleEnvironmentParams
 from torch_traj_utils.trajectory import Trajectory,TrajectoryScenario
 import matplotlib.pyplot as plt
 from torch_traj_utils.animate_cartpole import animate_cartpole
 
-def plot_trajectory(solver_params: SolverParams, env_params: CartpoleEnvironmentParams, traj: Trajectory, filename_base: str, animate=False):
+def plot_trajectory(solver_params: SolverParams | CasadiSolverParams, env_params: CartpoleEnvironmentParams, traj: Trajectory, filename_base: str, animate=False):
     # Plot state and control trajectories
-    t = np.arange(traj.sc.t0, traj.sc.T + traj.dt, traj.dt)
+    nt = traj.s.shape[0]
+    t = np.linspace(traj.sc.t0, traj.sc.T, nt)
     N = t.size - 1
     fig, ax = plt.subplots(2, env_params.n, dpi=150, figsize=(11, 6))
     plt.subplots_adjust(wspace=0.5, hspace=0.5)
@@ -34,16 +36,18 @@ def plot_trajectory(solver_params: SolverParams, env_params: CartpoleEnvironment
     ax[1, 1].set_xlabel("x")
     ax[1, 1].set_ylabel("y")
     # add the energy plot
-    ax[1, 2].plot(t, traj.energy1)
-    #ax[0, i].axhline(s_goal[i], linestyle="--", color="tab:orange")
-    ax[1, 2].set_xlabel(r"$t$")
-    ax[1, 2].set_ylabel("E[Total]")
+    if len(traj.energy1)>0:
+        ax[1, 2].plot(t, traj.energy1)
+        #ax[0, i].axhline(s_goal[i], linestyle="--", color="tab:orange")
+        ax[1, 2].set_xlabel(r"$t$")
+        ax[1, 2].set_ylabel("E[Total]")
     # add the other energy plot
-    ax[1, 3].plot(t, traj.energy2)
-    ax[1, 3].plot(t[:-1], traj.u[:, 0]/6)
-    #ax[0, i].axhline(s_goal[i], linestyle="--", color="tab:orange")
-    ax[1, 3].set_xlabel(r"$t$")
-    ax[1, 3].set_ylabel("E[pole] w/ u")
+    if len(traj.energy2)>0:
+        ax[1, 3].plot(t, traj.energy2)
+        ax[1, 3].plot(t[:-1], traj.u[:, 0]/6)
+        #ax[0, i].axhline(s_goal[i], linestyle="--", color="tab:orange")
+        ax[1, 3].set_xlabel(r"$t$")
+        ax[1, 3].set_ylabel("E[pole] w/ u")
     # cleanup
     #fig.delaxes(ax[1, 3])
     if filename_base != "":

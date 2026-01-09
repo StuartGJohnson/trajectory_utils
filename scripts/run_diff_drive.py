@@ -45,6 +45,7 @@ def main():
                               P=1.0 * np.eye(n),
                               Q=np.eye(n),
                               R=np.eye(m),
+                              Rd=0.0*np.eye(m),
                               rho=0.05,
                               rho_u=0.02,
                               eps=0.001,
@@ -55,8 +56,9 @@ def main():
                               max_solve_secs=-1.0,
                               solver_type="OSQP")
 
-    t = np.arange(0.0, T + dt, dt)
-    N = t.size - 1
+    N = np.round((T - 0.0) / dt).astype(int) + 1
+    t = np.linspace(0.0, T, N)
+
 
     solver = DiffDriveSolver(sp=solver_params)
     solver.reset_custom(s0, u_goal, u_final, u_min, N, sdf=sdf)
@@ -67,7 +69,11 @@ def main():
     print("SCP convergence: " + str(conv))
 
     # open-loop rollout
-    s, u = solver.rollout(s, u)
+    t_ode = solver.get_ode()
+    s, u = t_ode.rollout(s, u, N)
+
+    nt = s.shape[0]
+    t = np.linspace(0.0, T, nt)
 
     # Plot state and control trajectories
     fig, ax = plt.subplots(2, 3, dpi=150, figsize=(10, 10))

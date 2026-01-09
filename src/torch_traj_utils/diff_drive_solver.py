@@ -2,6 +2,7 @@
 Differential drive robot control trajectory planner.
 """
 from torch_traj_utils.scp_solver import SCPSolver, SolverParams
+from torch_traj_utils.diff_drive_ode import DiffDriveODE
 
 import cvxpy as cvx
 import torch
@@ -24,7 +25,8 @@ class DiffDriveSolver(SCPSolver):
 
     def __init__(self, sp:SolverParams):
         super().__init__(sp=sp)
-        super().setup()
+        t_ode = DiffDriveODE(self.params.dt)
+        self.setup(t_ode)
 
     def reset_custom(self, s0:np.ndarray, u_goal:np.ndarray, u_final:np.ndarray, u_min:np.ndarray, N:int, sdf: SDF):
         """

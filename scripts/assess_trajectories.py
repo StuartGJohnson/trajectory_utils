@@ -1,6 +1,6 @@
-
 from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory, TrajectoryExpert
 from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams, SolverParams
+from torch_traj_utils.cartpole_solver_velocity_cas import CartpoleSolverVelocityCas,  CasadiSolverParams
 
 from torch_traj_utils.plot_trajectory import plot_trajectory
 import numpy as np
@@ -17,7 +17,7 @@ def main(tdir: str):
         with open(file,"rb") as f:
             pickle_fest = pickle.load(f)
         traj: Trajectory = pickle_fest[2]
-        sp: SolverParams = pickle_fest[1]
+        sp: SolverParams | CasadiSolverParams  = pickle_fest[1]
         ep: CartpoleEnvironmentParams = pickle_fest[0]
         num_data += 1
         if traj.conv:
@@ -30,4 +30,4 @@ def main(tdir: str):
     print(good_data, num_data, good_data/num_data)
 
 if __name__ == "__main__":
-    main("trajectories_big_1")
+    main("trajectories_test_cas")

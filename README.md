@@ -51,9 +51,16 @@ src/torch_traj_utils/cartpole_solver_velocity.py
 scripts/run_cartpole_velocity.py
 ```
 
+A CasADi/IPOPT trajectory solver for a cartpole (more to come) driven by a velocity servo on the pole hub (a belt driven "cart"):
+
+```
+src/torch_traj_utils/cartpole_solver_velocity_cas.py
+scripts/run_cartpole_velocity_cas.py
+```
+
 # Sequential Convex Programming (SCP)
 
-SCP solvers are generalized via polymorphism in:
+SCP solvers are generalized via polymorphism circa:
 
 ```
 src/torch_traj_utils/scp_solver.py
@@ -61,9 +68,19 @@ src/torch_traj_utils/scp_solver.py
 
 SCP solvers define a subclass of SCPSolver. Current examples are CartpoleSolverVelocity, CartpoleSolverForce and DiffDriveSolver (see the Contents section). These solvers use cvxpy and pytorch. These solvers are based on principles and examples covered in Optimal Control (e.g., Stanford AA203, Optimal and Learning-based Control).
 
+# CasADi/IPOPT trajectory solvers
+
+CasADi/IPOPT solvers are generalized via polymorphism circa:
+
+```
+src/torch_traj_utils/cas_solver.py
+```
+
+CasADi/IPOPT nonlinear optimization tools can be used to define solvers as well. In this implementation, these solvers define a subclass of CasadiOCPSolver. The current example is CartpoleSolverVelocityCas, with more to come. These solvers use casadi, and pytorch is still used for solution rollout. The Casadi solver is generally faster than cvxpy, and the arduous task of managing cvxpy-based solutions (trust regions and the vagaries of convex solvers) is avoided.
+
 # Robot control trajectory solutions
 
-When collecting data to observe sensor data (e.g., IMU and odometry) under robot actions, it would be useful to have a method to compute control trajectories which satisfy some nominal control strategy, but are also unlikely to cause the robot to collide with obstacles. Optimal control to the rescue! Code in:
+When collecting data to observe sensor data (e.g., IMU and odometry) under robot actions, it would be useful to have a method to compute control trajectories. These trajectories should satisfy some nominal control strategy and avoid obstacles. Optimal control to the rescue! Code in:
 
 ```
 scripts/run_diff_drive.py
@@ -81,17 +98,19 @@ An overlay of the computed trajectory and the SDF is:
 
 <img src="scripts/diff_drive_traj.png" alt="scripts/diff_drive_traj.png" width="500"/>
 
-# SCP Cartpole solutions
+This will be implemented with CasADi/IPOPT as well.
+
+# Cartpole solutions
 
 See [writeup/math_background.pdf](writeup/math_background.pdf) for more detail.
 
 Solutions for the "swing-up" of a cartpole from a stationary unmoving pendulum are shown below. These solutions model a cartpole system where the pendulum is a rod attached to a pivot in the center of a belt-driven "cart". (More details to come). This system differs somewhat from typical textbook examples where the pendulum mass is concentrated at the end of the pendulum.
 
-## Cart force control
+## Cart force control (SCP)
 
 The system could in principle be driven by a force on the cart. A solution to swing-up is produced by executing ```scripts/run_cartpole_force.py```.
 
-Minimized cost, states and actions computed by this script are:
+Minimized cost, optimal states and actions computed by this script are:
 
 <img src="scripts/cartpole_force_cost.png" alt="scripts/cartpole__force_cost.png" width="500"/> <img src="scripts/cartpole_force_state.png" alt="scripts/cartpole_force_state.png" width="550"/>
 
@@ -99,17 +118,29 @@ An animation of the cartpole is:
 
 <img src="scripts/cartpole_force.gif" alt="scripts/cartpole_force.gif" width="500"/>
 
-## Cart velocity control
+## Cart velocity control (SCP)
 
 The system could also be driven by a velocity servo on the cart. A solution to swing-up is produced by executing ```scripts/run_cartpole_velocity.py```.
 
-Minimized cost, states and actions computed by this script are:
+Minimized cost, and optimal states and actions computed by this script are:
 
 <img src="scripts/cartpole_velocity_cost.png" alt="scripts/cartpole_velocity_cost.png" width="500"/> <img src="scripts/cartpole_velocity_state.png" alt="scripts/cartpole_velocity_state.png" width="550"/>
 
 An animation of the cartpole is:
 
 <img src="scripts/cartpole_velocity.gif" alt="scripts/cartpole_velocity.gif" width="500"/>
+
+## Cart velocity control (CasADi/IPOPT)
+
+The solution of the velocity servo control is found via CasADi/IPOPT. A solution to swing-up is produced by executing ```scripts/run_cartpole_velocity_cas.py```.
+
+Optimal states and actions computed by this script are:
+
+<img src="scripts/cartpole_velocity_cas_state.png" alt="scripts/cartpole_velocity_cas_state.png" width="550"/>
+
+An animation of the cartpole is:
+
+<img src="scripts/cartpole_velocity_cas.gif" alt="scripts/cartpole_velocity_cas.gif" width="500"/>
 
 ## Cart Neural Network control
 

@@ -3,8 +3,8 @@ Cart velocity (servo) controlled cartpole.
 """
 
 from torch_traj_utils.trajectory import TrajectoryScenario
-from torch_traj_utils.cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams
-from torch_traj_utils.cartpole_expert import CartpoleVelocitySwingupExpert
+from torch_traj_utils.cartpole_solver_velocity import CartpoleEnvironmentParams, SolverParams, CartpoleSolverVelocity
+from torch_traj_utils.cartpole_expert import CartpoleSwingupExpert
 from torch_traj_utils.plot_trajectory import plot_trajectory
 import numpy as np
 import pickle
@@ -29,13 +29,14 @@ def main():
                               P=1e3 * np.eye(4),
                               Q=np.diag([10, 2, 1, 0.25]), #Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
                               R=0.001 * np.eye(1),
+                              Rd=0.0 * np.eye(1),
                               rho=0.05,
                               rho_u=0.02,
                               eps=0.005,
                               cvxpy_eps=1e-3,
                               max_iters=1000,
+                              s_max=np.array([0.44 / 2.0, 1.5 * np.pi, 0.8, 5 * np.pi])[None, :],
                               u_max=np.array([0.8]),
-                              s_max=np.array([0.44 / 2.0, 1000, 0.8, 5*np.pi])[None, :],
                               max_solve_secs=-1.0,
                               solver_type="OSQP")
 
@@ -46,7 +47,9 @@ def main():
 
     scenario= TrajectoryScenario(s_goal=s_goal, s0=s0,t0=0.0, T=3.5)
 
-    expert = CartpoleVelocitySwingupExpert(ep=env_params,sp=solver_params)
+    solver = CartpoleSolverVelocity(ep=env_params, sp=solver_params)
+
+    expert = CartpoleSwingupExpert(ep=env_params, solver=solver)
 
     traj = expert.trajectory(scenario)
 

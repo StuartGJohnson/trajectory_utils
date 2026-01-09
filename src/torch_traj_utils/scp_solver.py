@@ -17,19 +17,14 @@ import numpy as np
 from typing import Tuple, Callable, Any, List
 import time
 from dataclasses import dataclass
+from torch_traj_utils.torch_ode import TorchODE
+from torch_traj_utils.trajectory_solver import TrajectorySolver, TrajectorySolverParams
 
 #torch.set_default_dtype(torch.float64)
 
 @dataclass
-class SolverParams:
+class SolverParams(TrajectorySolverParams):
     """the parameters of an SCP (solver) expert"""
-    dt: float
-    # terminal state cost
-    P: np.ndarray
-    # state cost along trajectory
-    Q: np.ndarray
-    # control cost matrix
-    R: np.ndarray
     # trust region size
     rho: float
     # trust region size - control
@@ -40,12 +35,6 @@ class SolverParams:
     cvxpy_eps: float
     # maximum number of SCP iterations
     max_iters: int
-    # state max
-    s_max: np.ndarray
-    # control max
-    u_max: np.ndarray
-    # max solve time
-    max_solve_secs: float
     # solver type: SCS or OSQP
     solver_type: str
     # deal with some interface migration.
@@ -58,7 +47,7 @@ class SolverParams:
         if 'solver_type' not in self.__dict__:
             self.solver_type = "SCS"
 
-class SCPSolver:
+class SCPSolver(TrajectorySolver):
     # basic SCP parameters (see the init method for docstrings)
     N : int
     params: SolverParams
@@ -82,20 +71,27 @@ class SCPSolver:
     u_prev_param: cvx.Parameter
     # the discretized, pytorch-ified dynamics
     fd: Callable
+    t_ode: TorchODE
 
     def __init__(self,
                  sp: SolverParams):
         """ Arguments
         ---------
         sp : SolverParams
-            Time interval between trajectory points.
         """
         self.params = sp
 
-    def setup(self):
+    def setup(self, t_ode: TorchODE):
         # these virtual-method calls do not belong in the constructor!
         #self.prob = self.opt_problem()
-        self.fd = self.build_fd_ode(self.params.dt)
+        self.t_ode = t_ode
+        self.fd = t_ode.build_fd_ode(self.params.dt)
+
+    def get_params(self) -> TrajectorySolverParams:
+        return self.params
+
+    def get_ode(self) -> TorchODE:
+        return self.t_ode
 
     def reset(self, s0:np.ndarray, s_goal:np.ndarray, N:int):
         """
@@ -184,7 +180,7 @@ class SCPSolver:
         self.u_init = np.zeros((self.N, m))
         self.s_init = np.zeros((self.N + 1, n))
         self.s_init[0] = self.s0
-        self.s_init, self.u_init = self.rollout(self.s_init, self.u_init)
+        self.s_init, self.u_init = self.t_ode.rollout(self.s_init, self.u_init, self.N)
 
     def set_trajectory(self, s_init, u_init):
         """simply set the trajectory."""
@@ -267,46 +263,6 @@ class SCPSolver:
         if other_status is not None:
             return s, u, J, converged, other_status, elapsed_time, iterations
         return s, u, J, converged, self.prob.status, elapsed_time, iterations
-
-    def discretize(self, f:Callable, dt: float) -> Callable:
-        """
-        f: (s, u) -> ds/dt   (both torch tensors; supports batching)
-        returns fd(s,u) that maps to next state with Runge-Kutta 4th order integration.
-            That is, s function describing the discrete-time dynamics, such that
-            `s[k+1] = fd(s[k], u[k])`.
-        See https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods .
-        """
-        def integrator(s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-            k1 = dt * f(s, u)
-            k2 = dt * f(s + 0.5 * k1, u)
-            k3 = dt * f(s + 0.5 * k2, u)
-            k4 = dt * f(s + k3, u)
-            return s + (k1 + 2*k2 + 2*k3 + k4) / 6.0
-        return integrator
-
-    def build_fd_ode(self, dt: float) -> Callable:
-        return self.discretize(self.ode, dt)
-
-    def rollout(self, s: np.ndarray, u: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        S = torch.as_tensor(s, dtype=torch.float64)
-        U = torch.as_tensor(u, dtype=torch.float64)
-        for k in range(self.N):
-            S[k + 1] = self.fd(S[k], U[k])
-        s = S.detach().cpu().numpy()
-        u = U.detach().cpu().numpy()
-        return s, u
-
-    def step(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        # single step of ode - for closed loop simulation with pytorch objects
-        # (e.g.) from NN predictions
-        return self.fd(s, u)
-
-    def ode(self, s: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
-        """
-        returns
-            A tensor ds/dt describing the continuous-time dynamics: `ds/dt = f(s, u)`.
-        """
-        raise NotImplementedError()
 
     def opt_problem(self) -> cvx.Problem:
         """ The optimization problem to solve - in cvxpy-speak."""

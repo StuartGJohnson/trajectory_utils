@@ -9,7 +9,7 @@ import glob
 import torch.nn as nn
 import numpy as np
 from torch_traj_utils.scp_solver import SolverParams
-from torch_traj_utils.cartpole_solver_velocity import CartpoleSolverVelocity, CartpoleEnvironmentParams
+from torch_traj_utils.cartpole_velocity_ode import CartpoleVelocityODE, CartpoleEnvironmentParams
 from torch_traj_utils.trajectory import TrajectoryScenario, Trajectory
 from torch_traj_utils.plot_trajectory import plot_trajectory
 from torch.utils.data import TensorDataset, DataLoader, random_split
@@ -180,6 +180,7 @@ class TrajectoryMetrics:
                                      Q=np.diag([10, 2, 1, 0.25]),
                                      # Q = np.diag([1e-2, 1.0, 1e-3, 1e-3]) (quadratic cost)
                                      R=0.001 * np.eye(1),
+                                     Rd=0.0 * np.eye(1),
                                      rho=0.05,
                                      rho_u=0.02,
                                      eps=0.005,
@@ -187,21 +188,21 @@ class TrajectoryMetrics:
                                      max_iters=1000,
                                      u_max=np.array([0.8]),
                                      s_max=np.array([0.44 / 2.0, 1000, 0.8, 5 * np.pi])[None, :],
-                                     max_solve_secs=200.0)
+                                     max_solve_secs=200.0,
+                                     solver_type="OSQP")
 
         self.sc = TrajectoryScenario(s_goal=np.array([0.0, np.pi, 0.0, 0.0]),
                                 s0=np.array([0.0, 0.0, 0.0, 0.0]),
                                 t0=0.0,
                                 T=3.5)
 
-        self.solver = CartpoleSolverVelocity(sp=self.solver_params, ep=self.env_params)
+        self.t_ode = CartpoleVelocityODE(ep=self.env_params, dt=self.solver_params.dt)
 
         self.rand_state_vec = []
         self.batch_size = -1
         self.set_dtype = set_dtype
 
-        self.t = np.arange(self.sc.t0, self.sc.T + self.solver_params.dt, self.solver_params.dt)
-        self.N = self.t.size - 1
+        self.N = np.round((self.sc.T - self.sc.t0) / self.solver_params.dt).astype(int) + 1
 
         # give goals some slack - 10%, but perhaps a bit more on x
         self.goal_limits = np.array(self.state_normalization) * goal_limits
@@ -350,7 +351,7 @@ class TrajectoryMetrics:
                 s = torch.tensor(s_np)
                 u = torch.tensor(u_np)
                 # step the integrator
-                s_next = self.solver.step(s,u)
+                s_next = self.t_ode.step(s,u)
                 # back to numpy for conversion
                 s_next_np = s_next.detach().cpu().numpy()
                 s_next_nn_np = to_nn_state(s_next_np, self.state_normalization)
