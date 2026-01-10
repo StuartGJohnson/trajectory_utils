@@ -46,6 +46,7 @@ class SolverParams(TrajectorySolverParams):
             self.max_solve_secs = -1.0
         if 'solver_type' not in self.__dict__:
             self.solver_type = "SCS"
+        super().__setstate__(state)
 
 class SCPSolver(TrajectorySolver):
     # basic SCP parameters (see the init method for docstrings)

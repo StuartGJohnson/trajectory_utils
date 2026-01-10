@@ -37,6 +37,8 @@ class CasadiSolverParams(TrajectorySolverParams):
     ipopt_print_level: int = 0
     ipopt_sb: str = "yes"
     print_time: bool = True
+    def __setstate__(self, state):
+        super().__setstate__(state)
 
 
 class CasadiOCPSolver(TrajectorySolver):

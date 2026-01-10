@@ -28,6 +28,11 @@ class TrajectorySolverParams:
     u_max: np.ndarray
     # max solve time
     max_solve_secs: float
+    # deal with some interface migration.
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if 'Rd' not in self.__dict__:
+            self.Rd = np.array([])
 
 
 class TrajectorySolver(ABC):
