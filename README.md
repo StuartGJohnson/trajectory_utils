@@ -214,3 +214,7 @@ For this test particular test, the NN seems to have nailed the controller. But, 
 The current training process DOES NOT YET include expert trajectories based on rollouts of the model being trained (_a la_ DAgger, for example). Also, I have not tuned the model, the datasets, etc. First cut! Also, the trajectory data is heavily biased to the slow parts of the trajectory:
 
 <img src="scripts/trajectories_big_1_theta_hist.png" alt="scripts/trajectories_big_1_theta_hist.png" width="500"/>
+
+# GPT comments
+
+ChatGPT4 through ChatGPT5.2 (OpenAI 2025 and 2026) were used to accelerate the development of this repo. In particular, debugging and development via CVXPY and CasADi can be quite opaque at times.  GPT5.2 was especially adept at debugging problems with CasADi optimization problem specification. In my experience, it is still best to target questions to the GPT via appropriate code sections. ChatGPT 5.2 can be a skilled debugger.
