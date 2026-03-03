@@ -37,6 +37,13 @@ src/torch_traj_utils/diff_drive_solver.py
 scripts/run_diff_drive.py
 ```
 
+A CasADi/IPOPT control trajectory solver for a differential drive robot:
+
+```
+src/torch_traj_utils/diff_drive_solver_cas.py
+scripts/run_diff_drive_cas.py
+```
+
 An SCP trajectory solver for a cartpole (with a particular physical twin - more to come) driven by force on the pole hub (a belt driven "cart"):
 
 ```
@@ -74,11 +81,12 @@ CasADi/IPOPT solvers are generalized via polymorphism circa:
 
 ```
 src/torch_traj_utils/cas_solver.py
+src/torch_traj_utils/casadi_solver.py
 ```
 
-CasADi/IPOPT nonlinear optimization tools can be used to define solvers as well. In this implementation, these solvers define a subclass of CasadiOCPSolver. The current example is CartpoleSolverVelocityCas, with more to come. These solvers use casadi, and pytorch is still used for solution rollout. The Casadi solver is generally faster than cvxpy, and the arduous task of managing cvxpy-based solutions (trust regions and the vagaries of convex solvers) is avoided.
+CasADi/IPOPT nonlinear optimization tools can be used to define solvers as well. In this implementation, these solvers define a subclass of CasadiSolver. The current example is CartpoleSolverVelocityCas, with more to come. These solvers use casadi, and pytorch is still used for solution rollout. The Casadi solver is generally faster (generally >10x) than cvxpy, and the arduous task of managing cvxpy-based solutions (trust regions and the vagaries of convex solvers) is avoided.
 
-# Robot control trajectory solutions
+# Robot control trajectory solutions - SCP
 
 When collecting data to observe sensor data (e.g., IMU and odometry) under robot actions, it would be useful to have a method to compute control trajectories. These trajectories should satisfy some nominal control strategy and avoid obstacles. Optimal control to the rescue! Code in:
 
@@ -88,7 +96,7 @@ src/torch_traj_utils/scalar_field_interpolator.py
 src/torch_traj_utils/diff_drive_solver.py
 ```
 
-generates an occupancy map of a 2x3m open area with a point obstacle. The class ```ScalarFieldInterpolator``` uses pytorch to generate a differentiable signed distance function (SDF) of the map which serves as an obstacle constraint for our trajectory solver. This class can be easily used to generate an SDF of any obstacle map (e.g, a ROS2 occupancy map). The script ```run_diff_drive.py``` produces a trajectory which starts at the current robot location, but with any initial heading (the robot can turn to this heading first).
+generates an occupancy map of a 2x3m open area with a point obstacle. The class ```ScalarFieldInterpolator``` uses pytorch to generate a differentiable signed distance function (SDF) of the map which serves as an obstacle constraint for our trajectory solver. This class can be easily used to generate an SDF of any obstacle map (e.g, a ROS2 occupancy map). The script ```run_diff_drive.py``` produces a trajectory which starts at the current robot pose.
 
 Minimized cost, states and actions computed by this script are:
 
@@ -98,7 +106,26 @@ An overlay of the computed trajectory and the SDF is:
 
 <img src="scripts/diff_drive_traj.png" alt="scripts/diff_drive_traj.png" width="500"/>
 
-This will be implemented with CasADi/IPOPT as well.
+# Robot control trajectory solutions - CasaADi/IPOPT
+
+As noted in the previous section, When collecting data to observe sensor data (e.g., IMU and odometry) under robot actions, it would be useful to have a method to compute control trajectories. These trajectories should satisfy some nominal control strategy and avoid obstacles. Optimal control to the rescue! Code in:
+
+```
+scripts/run_diff_drive_cas.py
+src/torch_traj_utils/scalar_field_interpolator_cas.py
+src/torch_traj_utils/diff_drive_solver_cas.py
+```
+
+generates an occupancy map of a 2x3m open area with a point obstacle. The class ```ScalarFieldInterpolatorCas``` uses CasADi to generate a differentiable signed distance function (SDF) of the map which serves as an obstacle constraint for our trajectory solver. This class can be easily used to generate an SDF of any obstacle map (e.g, a ROS2 occupancy map). The script ```run_diff_drive_cas.py``` produces a trajectory which starts at the current robot pose.
+
+States and actions computed by this script are:
+
+<img src="scripts/diff_drive_cas_state.png" alt="scripts/diff_drive_cas_state.png" width="400"/>
+
+An overlay of the computed trajectory and the SDF is:
+
+<img src="scripts/diff_drive_cas_traj.png" alt="scripts/diff_drive_cas_traj.png" width="500"/>
+
 
 # Cartpole solutions
 
