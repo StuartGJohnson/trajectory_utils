@@ -63,11 +63,15 @@ class DiffDriveSolver(SCPSolver):
         #objective += cvx.sum(self.slack_obs)
         constraints = [self.s_cvx[i + 1] == self.c_param[i] + self.A_param[i] @ self.s_cvx[i] +
                        self.B_param[i] @ self.u_cvx[i] for i in range(self.N)]
-        # note this does not enforce initial robot heading, only position
-        constraints += [self.s_cvx[0,:2] == self.s0[:2]]
-        constraints += [self.u_cvx[self.N-1] == self.u_final]
+        # it may be useful to allow the robot to rotate in place before
+        # moving - so use only the initial position as constraints.
+        constraints += [self.s_cvx[0] == self.s0]
+        # if the robot were following the velocity controls implied by
+        # the solution trajectory, this might be useful. Currently I am
+        # allowing NAV2 to figure out how to follow the generated trajectory.
+        #constraints += [self.u_cvx[self.N-1] == self.u_final]
         constraints += [cvx.abs(self.u_cvx) <= self.params.u_max]
-        constraints += [self.u_cvx >= self.u_min]
+        #constraints += [self.u_cvx >= self.u_min]
         # obstacle avoidance
         #constraints += [self.c_param_sdf[i] + self.A_param_sdf[i] @ self.s_cvx[i] + self.slack_obs[i] >= 0.0 for i in range(1, self.N)]
         constraints += [self.c_param_sdf[i] + self.A_param_sdf[i] @ self.s_cvx[i] >= 0.0 for i in range(1, self.N)]

@@ -2,7 +2,8 @@
 Differential drive robot control trajectory planner.
 """
 
-from torch_traj_utils.diff_drive_solver import DiffDriveSolver, SolverParams
+from torch_traj_utils.diff_drive_solver_cas import DiffDriveSolverCas
+from torch_traj_utils.cas_solver import CasadiSolverParams
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,42 +32,43 @@ def main():
     #control dim
     m = 2
     # start state: robot centered in the room, not moving
-    s0 = np.array([0.0, 0.0, np.pi/2])
+    s0 = np.array([0, 0.0, np.pi/2])
     # control goal: the real target
     u_goal = np.array([0.3, 0.3])
     # control final: not moving - not currently used
     u_final = np.array([0.0, 0.0])
     T = 30.0
-
-    rho_u = 0.02 # trust region size - control
     u_min = np.array([-max_robot_v, -max_robot_omega])[None,:]
     dt = 0.1
-    solver_params = SolverParams(dt=dt,
-                              P=0.0 * np.eye(n),
-                              Q=np.eye(n),
-                              R=np.eye(m),
-                              Rd=0.0*np.eye(m),
-                              rho=0.05,
-                              rho_u=0.02,
-                              eps=0.001,
-                              cvxpy_eps=.001,
-                              max_iters=10000,
-                              u_max=np.array([max_robot_v, max_robot_omega])[None,:],
-                              s_max=np.array([]),
-                              max_solve_secs=-1.0,
-                              solver_type="OSQP")
+    solver_params = CasadiSolverParams(dt=dt,
+                                       P=0.0 * np.eye(n),
+                                       Q=np.eye(n),
+                                       R=np.eye(m),
+                                       Rd=0.0*np.eye(m),
+                                       u_max=np.array([max_robot_v, max_robot_omega])[None,:],
+                                       s_max=np.array([1.5, 1.0, np.inf]),
+                                       optimize_time=False,
+                                       dt_min=0.001,
+                                       dt_max=0.02,
+                                       time_weight=0.0,
+                                       max_solve_secs=-1.0,
+                                       ipopt_max_iter=2000,
+                                       ipopt_tol=1e-6,
+                                       ipopt_print_level=1,
+                                       ipopt_sb="yes",
+                                       print_time=False
+                                       )
 
     N = np.round((T - 0.0) / dt).astype(int) + 1
     t = np.linspace(0.0, T, N)
 
-
-    solver = DiffDriveSolver(sp=solver_params)
+    solver = DiffDriveSolverCas(sp=solver_params)
     solver.reset_custom(s0, u_goal, u_final, u_min, N, sdf=sdf)
     solver.initialize_trajectory()
 
     s, u, J, conv, status, time, iters = solver.solve()
 
-    print("SCP convergence: " + str(conv))
+    print("Casadi/IPOPT convergence: " + str(conv))
 
     # open-loop rollout
     t_ode = solver.get_ode()
@@ -97,7 +99,7 @@ def main():
     ax[1, 2].set_xlabel(labels_s[0])
     ax[1, 2].set_ylabel(labels_s[1])
     ax[1, 2].set_aspect('equal')
-    plt.savefig("diff_drive_state.png", bbox_inches="tight")
+    plt.savefig("diff_drive_cas_state.png", bbox_inches="tight")
     plt.show()
 
     # plot trajectory over obstacle constraints
@@ -111,9 +113,8 @@ def main():
     S = torch.from_numpy(s_pts)
     U = torch.from_numpy(u_pts)
 
-    c = vmap(solver.sdf_interpolator.interpolator, in_dims=(0, 0))(S, U)  # (T,)
-    c_np = c.detach().cpu().numpy()
-    c_np = np.reshape(c_np, (41, 61))
+    c = solver.sdf_interpolator.interpolator(s_pts, u_pts)
+    c_np = np.reshape(c, (41, 61))
     plt.figure()
     plt.imshow(c_np,
                origin='lower',
@@ -126,14 +127,7 @@ def main():
     plt.plot(s[:,0], s[:,1], linestyle="-", color="tab:red")
     plt.xlabel(labels_s[0])
     plt.ylabel(labels_s[1])
-    plt.savefig("diff_drive_traj.png", bbox_inches="tight")
-    plt.show()
-
-    fig, ax = plt.subplots(1, 1, dpi=150, figsize=(8, 5))
-    ax.semilogy(J)
-    ax.set_xlabel(r"SCP iteration $i$")
-    ax.set_ylabel(r"SCP cost $J(\bar{x}^{(i)}, \bar{u}^{(i)})$")
-    plt.savefig("diff_drive_cost.png", bbox_inches="tight")
+    plt.savefig("diff_drive_cas_traj.png", bbox_inches="tight")
     plt.show()
 
 if __name__ == "__main__":
