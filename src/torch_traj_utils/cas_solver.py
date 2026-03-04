@@ -74,7 +74,7 @@ class CasadiOCPSolver(TrajectorySolver):
 
     def set_trajectory(self, s_init, u_init):
         """simply set the trajectory."""
-        self.s_init = s_init
+        self.x_init = s_init
         self.u_init = u_init
 
     def get_ode(self) -> TorchODE:

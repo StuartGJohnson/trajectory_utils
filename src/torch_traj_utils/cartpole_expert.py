@@ -24,11 +24,14 @@ class CartpoleSwingupExpert(TrajectoryExpert):
         self.t_ode = solver.get_ode()
         self.energy = CartpoleEnergy(ep)
 
-    def trajectory(self, sc: TrajectoryScenario) -> Trajectory:
+    def trajectory(self, sc: TrajectoryScenario, s_init=None, u_init=None) -> Trajectory:
         """compute a trajectory to the time horizon"""
         N = np.round((sc.T - sc.t0) / self.sp.dt).astype(int) + 1
         self.solver.reset(sc.s0, sc.s_goal, N)
-        self.solver.initialize_trajectory()
+        if s_init is None:
+            self.solver.initialize_trajectory()
+        else:
+            self.solver.set_trajectory(s_init, u_init)
         s, u, J, conv, status, time, iters = self.solver.solve()
         # update with a rollout
         s,u = self.t_ode.rollout(s, u, N)
