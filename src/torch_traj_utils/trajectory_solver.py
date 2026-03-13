@@ -17,10 +17,13 @@ class TrajectorySolverParams:
     # terminal state cost
     P: np.ndarray
     # state cost along trajectory
+    # may want to scale by dt/dt_ref
     Q: np.ndarray
     # control cost matrix
+    # may want to scale by dt/dt_ref
     R: np.ndarray
     # control differential cost matrix
+    # may want to scale by dt/dt_ref
     Rd: np.ndarray
     # state max
     s_max: np.ndarray

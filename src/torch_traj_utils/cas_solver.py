@@ -26,6 +26,11 @@ import time
 
 @dataclass
 class CasadiSolverParams(TrajectorySolverParams):
+    # Max horizon length (N) to pre-allocate (-1 is don't use feature)
+    # if this is set to -1, the problem will be rebuilt (before) every
+    # solve - this is an optimization for variable length solves.
+    N_max: int = -1
+
     # Optional time optimization: optimize dt within [dt_min, dt_max]
     optimize_time: bool = False
     dt_min: float = 0.01
@@ -75,8 +80,24 @@ class CasadiSolver(TrajectorySolver):
 
     def set_trajectory(self, s_init, u_init):
         """simply set the trajectory."""
-        self.x_init = s_init
-        self.u_init = u_init
+        N_max = self.N if self.params.N_max < 0 else self.params.N_max
+        if self.nlp and "p" in self.nlp:
+            n, m = self.n, self.m
+
+            self.x_init = np.zeros((N_max + 1, n))
+            self.u_init = np.zeros((N_max, m))
+
+            N_in = u_init.shape[0]
+            self.x_init[:N_in + 1, :] = s_init
+            self.u_init[:N_in, :] = u_init
+
+            # Pad with last state/control
+            if N_in < N_max:
+                self.x_init[N_in + 1:, :] = s_init[-1, :]
+                self.u_init[N_in:, :] = u_init[-1, :]
+        else:
+            self.x_init = s_init
+            self.u_init = u_init
 
     def get_ode(self) -> TorchODE:
         return self.t_ode
@@ -130,22 +151,43 @@ class CasadiSolver(TrajectorySolver):
             raise ValueError(f"s0 must be shape ({self.n},), got {s0.shape}")
         if s_goal.shape[0] != self.n:
             raise ValueError(f"s_goal must be shape ({self.n},), got {s_goal.shape}")
+        if 0 <= self.params.N_max < N:
+            raise ValueError(f"N ({N}) exceeds N_max ({self.params.N_max})")
 
         self.s0 = s0
         self.s_goal = s_goal
         self.N = N
 
-        self.build_problem()
+        if self.params.N_max < 0 or self.solver is None:
+            self.build_problem()
 
     def initialize_trajectory(self):
         """Set and rollout the zero control trajectory."""
         n = self.params.Q.shape[0]  # state dimension
         m = self.params.R.shape[0]  # control dimension
         # the zero control trajectory
-        self.u_init = np.zeros((self.N, m))
-        self.x_init = np.zeros((self.N + 1, n))
+        if self.nlp and "p" in self.nlp and self.params.N_max > 0:
+            N_to_rollout = self.params.N_max
+        else:
+            N_to_rollout = self.N
+
+        self.u_init = np.zeros((N_to_rollout, m))
+        self.x_init = np.zeros((N_to_rollout + 1, n))
         self.x_init[0] = self.s0
-        self.x_init, self.u_init = self.t_ode.rollout(self.x_init, self.u_init, self.N)
+        self.x_init, self.u_init = self.t_ode.rollout(self.x_init, self.u_init, N_to_rollout)
+
+    def get_p(self) -> ca.DM:
+        """Construct the parameter vector for the NLP."""
+        N, n, m = self.N, self.n, self.m
+        N_max = self.N if self.params.N_max < 0 else self.params.N_max
+
+        mask_stage = np.zeros(N_max)
+        mask_stage[:N] = 1.0
+
+        mask_terminal = np.zeros(N_max + 1)
+        mask_terminal[N] = 1.0
+
+        return ca.vertcat(self.s0, self.s_goal, mask_stage, mask_terminal)
 
     def solve(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, bool, str, float, int]:
         """
@@ -159,14 +201,18 @@ class CasadiSolver(TrajectorySolver):
 
         sp = self.params
         N, n, m = self.N, self.n, self.m
+        N_max = self.N if sp.N_max < 0 else sp.N_max
+
+        is_p = (self.nlp and "p" in self.nlp)
+        N_curr = N_max if is_p else N
 
         #if self.dt_init is None:
         dt_init = float(sp.dt)
 
         start_time = time.time()
 
-        x_init = np.asarray(self.x_init, dtype=float).reshape(N + 1, n)
-        u_init = np.asarray(self.u_init, dtype=float).reshape(N, m)
+        x_init = np.asarray(self.x_init, dtype=float).reshape(N_curr + 1, n)
+        u_init = np.asarray(self.u_init, dtype=float).reshape(N_curr, m)
 
         w0 = []
         w0.extend(x_init.reshape(-1).tolist())
@@ -174,21 +220,31 @@ class CasadiSolver(TrajectorySolver):
         if sp.optimize_time:
             w0.append(dt_init)
 
-        sol = self.solver(
-            x0=ca.DM(w0),
-            lbx=self.bounds["lbx"],
-            ubx=self.bounds["ubx"],
-            lbg=self.bounds["lbg"],
-            ubg=self.bounds["ubg"],
-        )
+        solver_args = {
+            "x0": ca.DM(w0),
+            "lbx": self.bounds["lbx"],
+            "ubx": self.bounds["ubx"],
+            "lbg": self.bounds["lbg"],
+            "ubg": self.bounds["ubg"],
+        }
+        if is_p:
+            solver_args["p"] = self.get_p()
+
+        sol = self.solver(**solver_args)
 
         w_opt = np.array(sol["x"]).reshape(-1)
 
         # unpack
         sx = self.var_slices["X"]
         su = self.var_slices["U"]
-        X = w_opt[sx].reshape(N + 1, n)
-        U = w_opt[su].reshape(N, m)
+        if is_p:
+            X_all = w_opt[sx].reshape(N_max + 1, n)
+            U_all = w_opt[su].reshape(N_max, m)
+            X = X_all[:N + 1, :]
+            U = U_all[:N, :]
+        else:
+            X = w_opt[sx].reshape(N + 1, n)
+            U = w_opt[su].reshape(N, m)
 
         if sp.optimize_time:
             dt = float(w_opt[self.var_slices["dt"]][0])

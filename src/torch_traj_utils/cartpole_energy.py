@@ -6,6 +6,7 @@ metrics. There will need to be a differentiable version for the casadi/ipopt sol
 import torch
 import numpy as np
 from torch_traj_utils.cartpole import CartpoleEnvironmentParams
+import casadi as ca
 
 class CartpoleEnergy:
     ep: CartpoleEnvironmentParams
@@ -16,7 +17,6 @@ class CartpoleEnergy:
     def energy_torch(self, s: torch.Tensor) -> torch.Tensor:
         """
         s: [..., 4] (x, θ, dx, dθ)
-        returns ds/dt with shape [..., 4]
         """
         m_p = self.ep.pole_mass
         m_c = self.ep.cart_mass
@@ -33,7 +33,6 @@ class CartpoleEnergy:
     def energy(self, s: np.ndarray) -> np.ndarray:
         """
         s: [..., 4] (x, θ, dx, dθ)
-        returns ds/dt with shape [..., 4]
         numpy version.
         """
         m_p = self.ep.pole_mass
@@ -89,6 +88,22 @@ class CartpoleEnergy:
         x, th, dx, dth = s[..., 0], s[..., 1], s[..., 2], s[..., 3]
         #sin_th = torch.sin(th)
         cos_th = np.cos(th)
+        pole_energy = m_p * L**2 * dth**2 / 6 - m_p * L * cos_th * g / 2
+        return pole_energy
+
+    def energy_pole_cas(self, s: ca.MX) -> ca.MX:
+        """
+        s: [4]  (x, θ, dx, dθ)
+        casadi version.
+        """
+        m_p = self.ep.pole_mass
+        L  = self.ep.pole_length
+        g  = self.g
+
+        th = s[1]
+        dth = s[3]
+
+        cos_th = ca.cos(th)
         pole_energy = m_p * L**2 * dth**2 / 6 - m_p * L * cos_th * g / 2
         return pole_energy
 
