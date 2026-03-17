@@ -65,7 +65,7 @@ class DiffDriveSolver(SCPSolver):
                        self.B_param[i] @ self.u_cvx[i] for i in range(self.N)]
         # it may be useful to allow the robot to rotate in place before
         # moving - so use only the initial position as constraints.
-        constraints += [self.s_cvx[0] == self.s0]
+        constraints += [self.s_cvx[0,:2] == self.s0[:2]]
         # if the robot were following the velocity controls implied by
         # the solution trajectory, this might be useful. Currently I am
         # allowing NAV2 to figure out how to follow the generated trajectory.

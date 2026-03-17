@@ -97,7 +97,7 @@ class DiffDriveSolverCas(CasadiSolver):
         J = 0
 
         # initial condition
-        g_dyn.append(Xk(0) - x0)
+        g_dyn.append(Xk(0)[0:2] - x0[0:2])
 
         # dynamics + cost
         # this could be 0, but then what happens with a non-zero
