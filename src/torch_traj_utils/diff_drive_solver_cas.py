@@ -47,12 +47,15 @@ class DiffDriveSolverCas(CasadiSolver):
         self.u_goal = u_goal
         self.u_min = u_min
         # compute state min and max from the SDF
-        x_min = sdf.ox
-        x_max = sdf.ox + sdf.x_size
-        y_min = sdf.oy
-        y_max = sdf.oy + sdf.y_size
-        self.s_min = np.array([x_min, y_min, -np.inf])
-        self.s_max = np.array([x_max, y_max, np.inf])
+        # x_min = sdf.ox
+        # x_max = sdf.ox + sdf.x_size
+        # y_min = sdf.oy
+        # y_max = sdf.oy + sdf.y_size
+        # self.s_min = np.array([x_min, y_min, -np.inf])
+        # self.s_max = np.array([x_max, y_max, np.inf])
+        # casadi gets testy near constraints
+        self.s_min = np.array([-np.inf, -np.inf, -np.inf])
+        self.s_max = np.array([np.inf, np.inf, np.inf])
         n = self.params.Q.shape[0]
         m = self.params.R.shape[0]
         self.build_problem()
@@ -148,18 +151,19 @@ class DiffDriveSolverCas(CasadiSolver):
         lbx = []
         ubx = []
 
-        # state bounds: |x| <= s_max
+        # state bounds:
         s_min = np.asarray(self.s_min, dtype=float).reshape(n)
         s_max = np.asarray(self.s_max, dtype=float).reshape(n)
         for _ in range(N + 1):
             lbx.extend((s_min).tolist())
             ubx.extend((s_max).tolist())
 
-        # control bounds: |u| <= u_max
+        # control bounds:
+        u_min = np.asarray(self.u_min, dtype=float).reshape(m)
         u_max = np.asarray(sp.u_max, dtype=float).reshape(m)
         for _ in range(N):
-            lbx.extend((-u_max).tolist())
-            ubx.extend((+u_max).tolist())
+            lbx.extend((u_min).tolist())
+            ubx.extend((u_max).tolist())
 
         if sp.optimize_time:
             lbx.append(float(sp.dt_min))

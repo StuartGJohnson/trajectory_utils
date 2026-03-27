@@ -53,7 +53,7 @@ def main():
                                        time_weight=0.0,
                                        max_solve_secs=-1.0,
                                        ipopt_max_iter=2000,
-                                       ipopt_tol=1e-6,
+                                       ipopt_tol=1e-2,
                                        ipopt_print_level=1,
                                        ipopt_sb="yes",
                                        print_time=False
